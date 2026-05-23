@@ -30,6 +30,9 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+# .bin contains the `prisma` symlink that `npx prisma` resolves to.
+COPY --from=builder /app/node_modules/.bin ./node_modules/.bin
+ENV PATH=/app/node_modules/.bin:$PATH
 USER nexus
 EXPOSE 3000
 CMD ["node", "server.js"]
