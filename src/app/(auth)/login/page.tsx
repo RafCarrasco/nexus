@@ -6,7 +6,7 @@ export default function LoginPage() {
       <form
         action={async () => {
           'use server';
-          await signIn('google', { redirectTo: '/' });
+          await signIn('microsoft-entra-id', { redirectTo: '/' });
         }}
         className="rounded-2xl border bg-white p-8 shadow-sm w-full max-w-sm space-y-4"
       >
@@ -16,7 +16,7 @@ export default function LoginPage() {
           type="submit"
           className="w-full rounded-xl bg-zinc-900 px-4 py-2 text-white hover:bg-zinc-700"
         >
-          Continue with Google
+          Continue with Microsoft
         </button>
       </form>
     </main>
