@@ -1,9 +1,14 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { isDevAllowedEmail } from '@/auth/utils';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { isDevAllowedEmail, checkDevPassword } from '@/auth/utils';
 
 beforeEach(() => {
   process.env.NEXUS_ALLOWED_EMAIL_DOMAIN = 'procurementgarage.com';
   process.env.NEXUS_DEV_EMAILS = 'rafael.carrasco@procurementgarage.com, other@procurementgarage.com';
+  delete process.env.NEXUS_DEV_PASSWORD;
+});
+
+afterEach(() => {
+  delete process.env.NEXUS_DEV_PASSWORD;
 });
 
 describe('isDevAllowedEmail', () => {
@@ -20,5 +25,30 @@ describe('isDevAllowedEmail', () => {
   it('is case-insensitive on both list and input', () => {
     process.env.NEXUS_DEV_EMAILS = 'RAFAEL@procurementgarage.com';
     expect(isDevAllowedEmail('rafael@procurementgarage.com')).toBe(true);
+  });
+});
+
+describe('checkDevPassword', () => {
+  it('returns true when NEXUS_DEV_PASSWORD is unset', () => {
+    expect(checkDevPassword(undefined)).toBe(true);
+    expect(checkDevPassword(null)).toBe(true);
+    expect(checkDevPassword('')).toBe(true);
+  });
+
+  it('returns true on exact match', () => {
+    process.env.NEXUS_DEV_PASSWORD = 'secret123';
+    expect(checkDevPassword('secret123')).toBe(true);
+  });
+
+  it('returns false on mismatch', () => {
+    process.env.NEXUS_DEV_PASSWORD = 'secret123';
+    expect(checkDevPassword('wrongpassword')).toBe(false);
+  });
+
+  it('returns false when submitted is empty and env is set', () => {
+    process.env.NEXUS_DEV_PASSWORD = 'secret123';
+    expect(checkDevPassword('')).toBe(false);
+    expect(checkDevPassword(null)).toBe(false);
+    expect(checkDevPassword(undefined)).toBe(false);
   });
 });

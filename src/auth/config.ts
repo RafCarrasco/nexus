@@ -4,7 +4,7 @@ import Credentials from 'next-auth/providers/credentials';
 import type { Provider } from '@auth/core/providers';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '@/db/client';
-import { isAllowedEmail, isDevAllowedEmail } from '@/auth/utils';
+import { isAllowedEmail, isDevAllowedEmail, checkDevPassword } from '@/auth/utils';
 import { e2eSession } from './e2e-bypass';
 
 export { isAllowedEmail };
@@ -22,11 +22,15 @@ if (process.env.NEXUS_DEV_LOGIN === '1') {
     Credentials({
       id: 'dev-email',
       name: 'Dev email',
-      credentials: { email: { label: 'Email', type: 'email' } },
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
+      },
       async authorize(creds) {
         const email = String(creds?.email ?? '').toLowerCase().trim();
         if (!email) return null;
         if (!isDevAllowedEmail(email)) return null;
+        if (!checkDevPassword(creds?.password as string | undefined)) return null;
         const user = await prisma.user.upsert({
           where: { email },
           create: { email, name: email.split('@')[0], role: 'member' },

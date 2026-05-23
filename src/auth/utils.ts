@@ -20,3 +20,18 @@ export function isDevAllowedEmail(email: string | null | undefined): boolean {
     .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   return allow.includes(email.toLowerCase().trim());
 }
+
+/**
+ * Checks the shared dev password against NEXUS_DEV_PASSWORD.
+ * If env is unset/empty → always pass (back-compat).
+ * Uses timing-safe SHA-256 comparison to avoid length-based leaks.
+ */
+export function checkDevPassword(submitted: string | null | undefined): boolean {
+  const expected = process.env.NEXUS_DEV_PASSWORD ?? '';
+  if (!expected) return true;
+  if (!submitted) return false;
+  const { createHash, timingSafeEqual } = require('node:crypto') as typeof import('node:crypto');
+  const a = createHash('sha256').update(expected).digest();
+  const b = createHash('sha256').update(submitted).digest();
+  return timingSafeEqual(a, b);
+}

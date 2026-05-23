@@ -39,6 +39,7 @@ services:
       NEXUS_ALLOWED_EMAIL_DOMAIN: ${NEXUS_ALLOWED_EMAIL_DOMAIN}
       NEXUS_DEV_EMAILS: ${NEXUS_DEV_EMAILS}
       NEXUS_DEV_LOGIN: ${NEXUS_DEV_LOGIN}
+      NEXUS_DEV_PASSWORD: ${NEXUS_DEV_PASSWORD}
     volumes:
       # Mount host Docker socket so DockerProvider can see VPS containers.
       - /var/run/docker.sock:/var/run/docker.sock:ro
