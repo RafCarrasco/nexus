@@ -35,6 +35,8 @@ services:
       AUTH_MICROSOFT_ENTRA_ID_SECRET: ${AUTH_MICROSOFT_ENTRA_ID_SECRET}
       AUTH_MICROSOFT_ENTRA_ID_ISSUER: ${AUTH_MICROSOFT_ENTRA_ID_ISSUER}
       NEXUS_ALLOWED_EMAIL_DOMAIN: ${NEXUS_ALLOWED_EMAIL_DOMAIN}
+      NEXUS_DEV_EMAILS: ${NEXUS_DEV_EMAILS}
+      NEXUS_DEV_LOGIN: ${NEXUS_DEV_LOGIN}
     volumes:
       # Mount host Docker socket so DockerProvider can see VPS containers.
       - /var/run/docker.sock:/var/run/docker.sock:ro
