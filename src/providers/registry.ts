@@ -1,8 +1,10 @@
 import type { Provider } from './types';
 import { FakeProvider } from './fake';
+import { DockerProvider } from './docker';
 
 const registry = new Map<string, Provider>();
 registry.set(FakeProvider.type, FakeProvider);
+registry.set(DockerProvider.type, DockerProvider);
 
 export function registerProvider(p: Provider): void {
   registry.set(p.type, p);
