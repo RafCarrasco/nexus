@@ -1,4 +1,5 @@
 import { prisma } from '@/db/client';
+import type { Prisma } from '@prisma/client';
 import { getProvider } from '@/providers/registry';
 import { decrypt } from '@/crypto/vault';
 import { tryConnectionLock, releaseConnectionLock } from './lock';
@@ -26,7 +27,7 @@ export async function runCollection(connectionId: string): Promise<void> {
       return;
     }
 
-    const view = { id: conn.id, type: conn.type, config: decrypt<Record<string, unknown>>(conn.credentials) };
+    const view = { id: conn.id, type: conn.type, config: decrypt<Record<string, unknown>>(Buffer.from(conn.credentials)) };
 
     let resources;
     try {
@@ -45,9 +46,9 @@ export async function runCollection(connectionId: string): Promise<void> {
           name: r.name,
           kind: r.kind,
           region: r.region,
-          metadata: r.metadata,
+          metadata: r.metadata as Prisma.JsonObject,
         },
-        update: { name: r.name, kind: r.kind, region: r.region, metadata: r.metadata },
+        update: { name: r.name, kind: r.kind, region: r.region, metadata: r.metadata as Prisma.JsonObject },
       });
 
       // activity

@@ -34,9 +34,9 @@ async function googleAccessToken(conn: ConnectionView): Promise<string> {
     },
     scopes: ['https://www.googleapis.com/auth/cloud-billing.readonly'],
   });
-  const r = await auth.getAccessToken();
-  if (!r?.token) throw new Error('no access token');
-  return r.token;
+  const token = await auth.getAccessToken();
+  if (!token) throw new Error('no access token');
+  return token;
 }
 
 function formatDate(d: Date): string {

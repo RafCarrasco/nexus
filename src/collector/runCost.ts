@@ -15,7 +15,7 @@ export async function runCost(now = new Date()): Promise<void> {
     } catch {
       continue;
     }
-    const view = { id: conn.id, type: conn.type, config: decrypt<Record<string, unknown>>(conn.credentials) };
+    const view = { id: conn.id, type: conn.type, config: decrypt<Record<string, unknown>>(Buffer.from(conn.credentials)) };
     const resources = await prisma.resource.findMany({ where: { connectionId: conn.id } });
     for (const r of resources) {
       try {
