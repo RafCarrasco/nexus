@@ -2,11 +2,13 @@ import type { Provider } from './types';
 import { FakeProvider } from './fake';
 import { DockerProvider } from './docker';
 import { FirebaseProvider } from './firebase';
+import { SupabaseProvider } from './supabase';
 
 const registry = new Map<string, Provider>();
 registry.set(FakeProvider.type, FakeProvider);
 registry.set(DockerProvider.type, DockerProvider);
 registry.set(FirebaseProvider.type, FirebaseProvider);
+registry.set(SupabaseProvider.type, SupabaseProvider);
 
 export function registerProvider(p: Provider): void {
   registry.set(p.type, p);
