@@ -32,8 +32,6 @@ COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 # Prisma 7 CLI transitive deps not picked up by Next.js standalone tracing.
 COPY --from=builder /app/node_modules/effect ./node_modules/effect
-COPY --from=builder /app/node_modules/@effect ./node_modules/@effect
-COPY --from=builder /app/node_modules/fast-check ./node_modules/fast-check
 # .bin contains the `prisma` symlink that `npx prisma` resolves to.
 COPY --from=builder /app/node_modules/.bin ./node_modules/.bin
 ENV PATH=/app/node_modules/.bin:$PATH
