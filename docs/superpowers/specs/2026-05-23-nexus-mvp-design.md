@@ -400,7 +400,7 @@ Traefik picks up the container via labels and provisions TLS.
 1. **Notifications:** Teams (priority), Telegram, email — implement `Notifier` interface, add `notification_channels` table, route incident severity → channel.
 2. **Azure + Copilot Studio adapters.**
 3. **Auto tenant pro-ration** via instrumented Functions/Firestore custom metrics.
-4. **Customer-facing tenant portal** (separate Next.js route group with row-level filtering by `clientId`).
+4. **Customer-facing tenant portal** — embedded **inside each multi-tenant project** (not inside Nexus). Each Firebase project ships a tenant-scoped portal that consumes Nexus data via a read-only API key bound to a single `tenantId`. Nexus exposes `GET /api/external/tenant/{tenantId}` (cost summary, recent activity, health) so the host project's portal can render the slice that belongs to its current logged-in tenant. Keeps the customer experience inside the product they already use; Nexus stays internal.
 5. **Anomaly detection** beyond fixed thresholds — rolling baselines, weekday seasonality.
 6. **Worker tier** (BullMQ + Redis) once any single collection cycle exceeds 30 s.
 
