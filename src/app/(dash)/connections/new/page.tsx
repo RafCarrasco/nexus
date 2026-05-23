@@ -38,17 +38,24 @@ export default function NewConnectionPage() {
   }
 
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader title="New connection" />
-      <div className="p-6 max-w-2xl space-y-4">
+
+      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm max-w-2xl space-y-5">
         <div className="space-y-2">
           <Label>Name</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Production Firebase" />
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Production Firebase"
+            className="border-zinc-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 focus:ring-offset-0"
+          />
         </div>
+
         <div className="space-y-2">
           <Label>Type</Label>
           <select
-            className="w-full rounded-md border px-3 py-2"
+            className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white"
             value={type}
             onChange={(e) => setType(e.target.value)}
           >
@@ -58,18 +65,32 @@ export default function NewConnectionPage() {
             <option value="fake">fake (dev only)</option>
           </select>
         </div>
+
         <div className="space-y-2">
           <Label>Config (JSON)</Label>
           <textarea
-            className="w-full min-h-[240px] rounded-md border px-3 py-2 font-mono text-sm"
+            className="w-full min-h-[240px] rounded-md border border-zinc-200 px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500"
             value={config}
             onChange={(e) => setConfig(e.target.value)}
             placeholder={'{\n  "serviceAccount": { ... },\n  "billingAccountId": "..."\n}'}
           />
         </div>
-        {error && <p className="text-sm text-red-600 whitespace-pre-wrap">{error}</p>}
-        <Button onClick={submit} disabled={busy || !name}>Save</Button>
+
+        {error && (
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 whitespace-pre-wrap">
+            {error}
+          </p>
+        )}
+
+        <div className="flex gap-3">
+          <Button onClick={submit} disabled={busy || !name}>
+            {busy ? 'Saving…' : 'Save connection'}
+          </Button>
+          <Button variant="outline" onClick={() => router.back()} disabled={busy}>
+            Cancel
+          </Button>
+        </div>
       </div>
-    </>
+    </div>
   );
 }

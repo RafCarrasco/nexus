@@ -8,7 +8,7 @@ const requireDevPassword = !!process.env.NEXUS_DEV_PASSWORD;
 
 function NexusMark() {
   return (
-    <svg width="32" height="32" viewBox="0 0 32 32" className="text-zinc-900">
+    <svg width="32" height="32" viewBox="0 0 32 32" className="text-violet-600" aria-hidden>
       <circle cx="11" cy="16" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
       <circle cx="21" cy="16" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
       <circle cx="16" cy="16" r="3" fill="currentColor" />
@@ -29,69 +29,84 @@ function MicrosoftLogo() {
 
 export default function LoginPage() {
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-50 via-white to-zinc-100 px-4">
-      <div className="w-full max-w-md space-y-6">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-xl space-y-6">
+    <main className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 px-4">
+      <div className="w-full max-w-md">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm space-y-6">
+          {/* Brand */}
           <div className="flex items-center gap-3">
             <NexusMark />
             <div>
-              <div className="text-2xl font-semibold tracking-tight">Nexus</div>
-              <div className="text-sm text-zinc-500">Internal observability for Procurement Garage.</div>
+              <div className="text-2xl font-semibold tracking-tight text-zinc-900">Nexus</div>
+              <div className="text-sm text-zinc-500">Internal observability platform</div>
             </div>
           </div>
 
-          <form
-            action={async () => {
-              'use server';
-              await signIn('microsoft-entra-id', { redirectTo: '/' });
-            }}
-          >
-            <Button type="submit" className="w-full gap-2">
-              <MicrosoftLogo />
-              Continue with Microsoft
-            </Button>
-          </form>
-
-          {devLoginEnabled && (
-            <>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 border-t border-zinc-200" />
-                <span className="text-xs uppercase tracking-wider text-zinc-400">or</span>
-                <div className="flex-1 border-t border-zinc-200" />
+          {devLoginEnabled ? (
+            /* Dev login — only when NEXUS_DEV_LOGIN=1 */
+            <form
+              action={async (formData: FormData) => {
+                'use server';
+                await signIn('dev-email', {
+                  email: String(formData.get('email') ?? ''),
+                  password: String(formData.get('password') ?? ''),
+                  redirectTo: '/',
+                });
+              }}
+              className="space-y-4"
+            >
+              <div className="space-y-1">
+                <Label htmlFor="email">Work email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  placeholder="you@procurementgarage.com"
+                  className="border-zinc-200 rounded-md focus:border-violet-500 focus:ring-2 focus:ring-violet-100 focus:ring-offset-0"
+                />
               </div>
-
-              <form
-                action={async (formData: FormData) => {
-                  'use server';
-                  await signIn('dev-email', {
-                    email: String(formData.get('email') ?? ''),
-                    password: String(formData.get('password') ?? ''),
-                    redirectTo: '/',
-                  });
-                }}
-                className="space-y-3"
-              >
+              {requireDevPassword && (
                 <div className="space-y-1">
-                  <Label htmlFor="email">Work email</Label>
-                  <Input id="email" name="email" type="email" required placeholder="you@pgconsulting-group.com" />
+                  <Label htmlFor="password">Temporary password</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    className="border-zinc-200 rounded-md focus:border-violet-500 focus:ring-2 focus:ring-violet-100 focus:ring-offset-0"
+                  />
                 </div>
-                {requireDevPassword && (
-                  <div className="space-y-1">
-                    <Label htmlFor="password">Temporary password</Label>
-                    <Input id="password" name="password" type="password" required placeholder="••••••••" />
-                  </div>
-                )}
-                <Button type="submit" variant="outline" className="w-full">
-                  Sign in with email
-                </Button>
-                <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-2">
-                  Temporary access while the Microsoft Entra ID app registration is pending.
-                </p>
-              </form>
-            </>
+              )}
+              <Button
+                type="submit"
+                className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl py-2.5 font-medium"
+              >
+                Sign in
+              </Button>
+              <p className="text-xs text-amber-700 bg-amber-50/60 border border-amber-200/60 rounded-lg p-3">
+                Temporary access while the Microsoft Entra ID app registration is pending.
+              </p>
+            </form>
+          ) : (
+            /* Production — Microsoft Entra ID only */
+            <form
+              action={async () => {
+                'use server';
+                await signIn('microsoft-entra-id', { redirectTo: '/' });
+              }}
+            >
+              <Button type="submit" className="w-full gap-2">
+                <MicrosoftLogo />
+                Continue with Microsoft
+              </Button>
+            </form>
           )}
         </div>
-        <p className="text-xs text-zinc-400 text-center">© 2026 Procurement Garage</p>
+
+        <p className="mt-6 text-xs text-zinc-400 text-center">
+          © 2026 Procurement Garage · Nexus
+        </p>
       </div>
     </main>
   );

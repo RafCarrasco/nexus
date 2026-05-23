@@ -19,19 +19,37 @@ export default async function ResourcesPage({ searchParams }: { searchParams: Pr
     take: 200,
   });
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader title="Resources" />
-      <form className="px-6 pt-4 flex gap-2 text-sm">
-        <input name="q" defaultValue={sp.q ?? ''} placeholder="search…" className="rounded border px-2 py-1" />
-        <select name="type" defaultValue={sp.type ?? ''} className="rounded border px-2 py-1">
-          <option value="">all types</option>
+
+      {/* Filter bar */}
+      <form className="flex items-center gap-2 text-sm">
+        <input
+          name="q"
+          defaultValue={sp.q ?? ''}
+          placeholder="Search resources…"
+          className="rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white"
+        />
+        <select
+          name="type"
+          defaultValue={sp.type ?? ''}
+          className="rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white"
+        >
+          <option value="">All types</option>
           <option value="firebase">firebase</option>
           <option value="supabase">supabase</option>
           <option value="docker">docker</option>
         </select>
-        <button type="submit" className="rounded border bg-white px-3 py-1">Filter</button>
+        <button
+          type="submit"
+          className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
+        >
+          Filter
+        </button>
       </form>
-      <div className="p-6">
+
+      {/* Table */}
+      <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -46,17 +64,27 @@ export default async function ResourcesPage({ searchParams }: { searchParams: Pr
           <TableBody>
             {rows.map((r) => (
               <TableRow key={r.id}>
-                <TableCell><Link href={`/resources/${r.id}` as never} className="underline">{r.name}</Link></TableCell>
-                <TableCell>{r.kind}</TableCell>
+                <TableCell>
+                  <Link href={`/resources/${r.id}` as never} className="font-medium text-zinc-900 hover:text-violet-600 transition-colors">
+                    {r.name}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-zinc-500">{r.kind}</TableCell>
                 <TableCell><Badge variant="outline">{r.connection.type}</Badge></TableCell>
-                <TableCell>{r.region ?? '—'}</TableCell>
-                <TableCell>{r.activityLog?.lastSeenAt?.toISOString().slice(0, 19).replace('T', ' ') ?? '—'}</TableCell>
-                <TableCell>{r._count.incidents > 0 ? <Badge variant="destructive">{r._count.incidents}</Badge> : '0'}</TableCell>
+                <TableCell className="text-zinc-500">{r.region ?? '—'}</TableCell>
+                <TableCell className="text-zinc-500">
+                  {r.activityLog?.lastSeenAt?.toISOString().slice(0, 19).replace('T', ' ') ?? '—'}
+                </TableCell>
+                <TableCell>
+                  {r._count.incidents > 0
+                    ? <Badge variant="destructive">{r._count.incidents}</Badge>
+                    : <span className="text-zinc-400">0</span>}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
-    </>
+    </div>
   );
 }

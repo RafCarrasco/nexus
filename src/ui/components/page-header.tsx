@@ -1,10 +1,21 @@
 import type { ReactNode } from 'react';
 
-export function PageHeader({ title, action }: { title: string; action?: ReactNode }) {
+export function PageHeader({
+  title,
+  subtitle,
+  action,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: ReactNode;
+}) {
   return (
-    <header className="flex items-center justify-between border-b bg-white px-6 py-4">
-      <h1 className="text-lg font-semibold">{title}</h1>
-      {action}
-    </header>
+    <div className="flex items-end justify-between mb-8">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">{title}</h1>
+        {subtitle && <p className="text-sm text-zinc-500 mt-1">{subtitle}</p>}
+      </div>
+      {action && <div className="flex items-center gap-2">{action}</div>}
+    </div>
   );
 }
