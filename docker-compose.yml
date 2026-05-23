@@ -26,6 +26,8 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: production
+      HOSTNAME: "0.0.0.0"
+      PORT: "3000"
       DATABASE_URL: postgresql://nexus:${POSTGRES_PASSWORD}@nexus-db:5432/nexus?schema=public
       NEXUS_MASTER_KEY: ${NEXUS_MASTER_KEY}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
