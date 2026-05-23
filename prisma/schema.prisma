@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Connection {
+  id              String     @id @default(cuid())
+  name            String
+  type            String
+  credentials     Bytes
+  status          String     @default("active")
+  lastError       String?
+  lastCollectedAt DateTime?
+  ownerUserId     String
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  resources       Resource[]
+}
+
+model Resource {
+  id            String         @id @default(cuid())
+  connectionId  String
+  externalId    String
+  name          String
+  kind          String
+  region        String?
+  metadata      Json
+  clientId      String?
+  allocationPct Int?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  connection    Connection     @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  tenants       Tenant[]
+  costSnapshots CostSnapshot[]
+  activityLog   ActivityLog?
+  incidents     Incident[]
+
+  @@unique([connectionId, externalId])
+}
+
+model Tenant {
+  id          String   @id @default(cuid())
+  resourceId  String
+  externalId  String
+  displayName String
+  clientId    String?
+  resource    Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceId, externalId])
+}
+
+model CostSnapshot {
+  id         String   @id @default(cuid())
+  resourceId String
+  date       DateTime
+  amount     Decimal  @db.Decimal(12, 4)
+  currency   String   @default("USD")
+  source     String
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceId, date, source])
+  @@index([date])
+}
+
+model ActivityLog {
+  resourceId String    @id
+  lastSeenAt DateTime?
+  source     String
+  updatedAt  DateTime  @updatedAt
+  resource   Resource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+}
+
+model Incident {
+  id         String    @id @default(cuid())
+  resourceId String
+  type       String
+  severity   String
+  message    String
+  openedAt   DateTime  @default(now())
+  resolvedAt DateTime?
+  payload    Json?
+  resource   Resource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@index([resolvedAt, openedAt])
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String?
+  image        String?
+  role         String     @default("member")
+  createdAt    DateTime   @default(now())
+  auditEntries AuditLog[]
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  target    String
+  payload   Json?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+}
