@@ -9,10 +9,45 @@ services:
       POSTGRES_DB: nexus
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
-    ports:
-      - "127.0.0.1:5432:5432"
+    networks:
+      - nexus-internal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U nexus -d nexus"]
       interval: 5s
       timeout: 5s
       retries: 10
+
+  nexus-web:
+    build: .
+    container_name: nexus-web
+    restart: unless-stopped
+    depends_on:
+      nexus-db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://nexus:${POSTGRES_PASSWORD}@nexus-db:5432/nexus?schema=public
+      NEXUS_MASTER_KEY: ${NEXUS_MASTER_KEY}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      NEXUS_ALLOWED_EMAIL_DOMAIN: ${NEXUS_ALLOWED_EMAIL_DOMAIN}
+    volumes:
+      # Optional: mount the host Docker socket so DockerProvider can see VPS containers.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - nexus-internal
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.nexus.rule=Host(`${NEXUS_HOST}`)"
+      - "traefik.http.routers.nexus.entrypoints=websecure"
+      - "traefik.http.routers.nexus.tls.certresolver=letsencrypt"
+      - "traefik.http.services.nexus.loadbalancer.server.port=3000"
+
+networks:
+  nexus-internal:
+  traefik:
+    external: true
