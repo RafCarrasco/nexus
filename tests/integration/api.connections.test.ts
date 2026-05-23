@@ -7,6 +7,7 @@ process.env.NEXUS_MASTER_KEY ??= Buffer.alloc(32, 7).toString('base64');
 // Stub the auth() helper to always return a fake admin session.
 vi.mock('@/auth/config', () => ({
   auth: async () => ({ user: { id: 'admin-id', email: 'admin@procurementgarage.com', role: 'admin' } }),
+  authOrE2E: async () => ({ user: { id: 'admin-id', email: 'admin@procurementgarage.com', role: 'admin' } }),
   handlers: { GET: async () => new Response(), POST: async () => new Response() },
   signIn: vi.fn(),
   signOut: vi.fn(),

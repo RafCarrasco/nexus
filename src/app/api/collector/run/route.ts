@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth/config';
+import { authOrE2E } from '@/auth/config';
 import { runAll } from '@/collector/runAll';
 import { runCost } from '@/collector/runCost';
 
 export async function POST(req: Request) {
-  const session = await auth();
+  const session = await authOrE2E(req);
   if ((session?.user as { role?: string })?.role !== 'admin') {
     return new NextResponse('forbidden', { status: 403 });
   }

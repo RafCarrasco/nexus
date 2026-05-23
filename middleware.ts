@@ -1,6 +1,8 @@
 import { auth } from '@/auth/edge';
+import { e2eSession } from '@/auth/e2e-bypass';
 
 export default auth((req) => {
+  if (e2eSession(req as unknown as Request)) return;
   const isAuth = !!req.auth;
   const url = req.nextUrl;
   const isPublic =

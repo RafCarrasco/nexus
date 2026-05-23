@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/db/client';
 import { encrypt } from '@/crypto/vault';
-import { auth } from '@/auth/config';
+import { authOrE2E } from '@/auth/config';
 import { getProvider, listProviderTypes } from '@/providers/registry';
 
 const createSchema = z.object({
@@ -11,8 +11,8 @@ const createSchema = z.object({
   config: z.record(z.string(), z.unknown()).default({}),
 });
 
-export async function GET() {
-  const session = await auth();
+export async function GET(req: Request) {
+  const session = await authOrE2E(req);
   if (!session?.user) return new NextResponse('unauthorized', { status: 401 });
   const rows = await prisma.connection.findMany({
     orderBy: { createdAt: 'desc' },
@@ -25,7 +25,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await auth();
+  const session = await authOrE2E(req);
   const user = session?.user as { id?: string; role?: string } | undefined;
   if (!user?.id) return new NextResponse('unauthorized', { status: 401 });
   if (user.role !== 'admin') return new NextResponse('forbidden', { status: 403 });

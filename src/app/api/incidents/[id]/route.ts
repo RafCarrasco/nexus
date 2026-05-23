@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/db/client';
-import { auth } from '@/auth/config';
+import { authOrE2E } from '@/auth/config';
 
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const session = await auth();
+  const session = await authOrE2E(req);
   if (!session?.user) return new NextResponse('unauthorized', { status: 401 });
   const body = (await req.json()) as { resolved?: boolean };
   const { id } = await ctx.params;

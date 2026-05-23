@@ -3,6 +3,7 @@ import Google from 'next-auth/providers/google';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '@/db/client';
 import { isAllowedEmail } from '@/auth/utils';
+import { e2eSession } from './e2e-bypass';
 
 export { isAllowedEmail };
 
@@ -52,3 +53,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+
+/**
+ * For API routes that may run under Playwright. Returns the bypass admin
+ * session when NEXUS_E2E=1 and the request carries the bypass header.
+ */
+export async function authOrE2E(req?: Request) {
+  if (req) {
+    const e2e = e2eSession(req);
+    if (e2e) return e2e;
+  }
+  return auth();
+}
