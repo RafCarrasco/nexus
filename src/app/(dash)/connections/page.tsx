@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { prisma } from '@/db/client';
 import { PageHeader } from '@/ui/components/page-header';
 import { Button } from '@/ui/components/button';
+import { RunNow } from './run-now';
 import { Badge } from '@/ui/components/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 
@@ -17,7 +18,12 @@ export default async function ConnectionsPage() {
     <>
       <PageHeader
         title="Connections"
-        action={<Button asChild><Link href="/connections/new">New connection</Link></Button>}
+        action={
+          <div className="flex gap-2">
+            <RunNow />
+            <Button asChild><Link href="/connections/new">New connection</Link></Button>
+          </div>
+        }
       />
       <div className="p-6">
         <Table>
