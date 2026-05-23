@@ -30,19 +30,20 @@ services:
       NEXUS_MASTER_KEY: ${NEXUS_MASTER_KEY}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       NEXTAUTH_URL: ${NEXTAUTH_URL}
+      AUTH_TRUST_HOST: "true"
       AUTH_MICROSOFT_ENTRA_ID_ID: ${AUTH_MICROSOFT_ENTRA_ID_ID}
       AUTH_MICROSOFT_ENTRA_ID_SECRET: ${AUTH_MICROSOFT_ENTRA_ID_SECRET}
       AUTH_MICROSOFT_ENTRA_ID_ISSUER: ${AUTH_MICROSOFT_ENTRA_ID_ISSUER}
       NEXUS_ALLOWED_EMAIL_DOMAIN: ${NEXUS_ALLOWED_EMAIL_DOMAIN}
     volumes:
-      # Optional: mount the host Docker socket so DockerProvider can see VPS containers.
+      # Mount host Docker socket so DockerProvider can see VPS containers.
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - nexus-internal
-      - traefik
+      - pg-cloud-net
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=traefik"
+      - "traefik.docker.network=pg-cloud-net"
       - "traefik.http.routers.nexus.rule=Host(`${NEXUS_HOST}`)"
       - "traefik.http.routers.nexus.entrypoints=websecure"
       - "traefik.http.routers.nexus.tls.certresolver=letsencrypt"
@@ -50,5 +51,5 @@ services:
 
 networks:
   nexus-internal:
-  traefik:
+  pg-cloud-net:
     external: true
