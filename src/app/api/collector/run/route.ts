@@ -12,8 +12,12 @@ export async function POST(req: Request) {
   const which = url.searchParams.get('kind') ?? 'all';
   if (which === 'cost') {
     await runCost();
-  } else {
+  } else if (which === 'inventory') {
     await runAll();
+  } else {
+    // kind=all or unset: run inventory + cost so billing shows immediately
+    await runAll();
+    await runCost();
   }
   return new NextResponse(null, { status: 204 });
 }

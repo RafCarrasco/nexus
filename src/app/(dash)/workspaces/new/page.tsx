@@ -33,7 +33,7 @@ async function createWorkspace(formData: FormData) {
   }
   await prisma.workspace.create({ data: { name, description, slug: candidate } });
   revalidatePath('/workspaces');
-  redirect('/workspaces' as never);
+  redirect(`/workspaces/${candidate}/connections/new?created=1` as never);
 }
 
 export default function NewWorkspacePage() {

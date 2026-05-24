@@ -25,14 +25,14 @@ function billingAccount(conn: ConnectionView): string | null {
   return (conn.config.billingAccountId as string | undefined) ?? null;
 }
 
-async function googleAccessToken(conn: ConnectionView): Promise<string> {
+async function googleAccessToken(conn: ConnectionView, scopes: string[]): Promise<string> {
   const sa = conn.config.serviceAccount as SAJson;
   const auth = new GoogleAuth({
     credentials: {
       client_email: sa.client_email,
       private_key: sa.private_key,
     },
-    scopes: ['https://www.googleapis.com/auth/cloud-billing.readonly'],
+    scopes,
   });
   const token = await auth.getAccessToken();
   if (!token) throw new Error('no access token');
@@ -43,27 +43,62 @@ function formatDate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+type HostingSite = {
+  name: string;
+  defaultUrl?: string;
+  appId?: string;
+};
+
+async function listHostingSites(conn: ConnectionView): Promise<HostingSite[]> {
+  try {
+    const token = await googleAccessToken(conn, ['https://www.googleapis.com/auth/firebase']);
+    const pid = projectId(conn);
+    const res = await fetch(
+      `https://firebasehosting.googleapis.com/v1beta1/projects/${pid}/sites`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!res.ok) return [];
+    const json = (await res.json()) as { sites?: HostingSite[] };
+    return json.sites ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export const FirebaseProvider: Provider = {
   type: 'firebase',
 
   async listResources(conn): Promise<ResourceDTO[]> {
     appFor(conn); // warm
     const id = projectId(conn);
-    return [
-      {
-        externalId: `project:${id}`,
-        name: id,
-        kind: 'firebase-project',
-        metadata: { projectId: id },
+
+    const projectResource: ResourceDTO = {
+      externalId: `project:${id}`,
+      name: id,
+      kind: 'firebase-project',
+      metadata: { projectId: id },
+    };
+
+    const sites = await listHostingSites(conn);
+    const hostingResources: ResourceDTO[] = sites.map((site) => ({
+      externalId: `hosting:${site.name}`,
+      name: site.name.split('/').pop() ?? site.name,
+      kind: 'firebase-hosting',
+      metadata: {
+        defaultUrl: site.defaultUrl,
+        appId: site.appId,
+        projectId: id,
       },
-    ];
+    }));
+
+    return [projectResource, ...hostingResources];
   },
 
   async getDailyCost(conn, _externalId, date): Promise<CostDTO | null> {
     const billing = billingAccount(conn);
     if (!billing) return null;
     try {
-      const token = await googleAccessToken(conn);
+      const token = await googleAccessToken(conn, ['https://www.googleapis.com/auth/cloud-billing.readonly']);
       const day = formatDate(date);
       const url =
         `https://cloudbilling.googleapis.com/v1/billingAccounts/${billing}` +
@@ -86,7 +121,26 @@ export const FirebaseProvider: Provider = {
     return null;
   },
 
-  async getHealth(conn, _externalId): Promise<HealthDTO> {
+  async getHealth(conn, externalId): Promise<HealthDTO> {
+    // Hosting resources: probe the defaultUrl
+    if (externalId.startsWith('hosting:')) {
+      try {
+        // externalId = hosting:projects/<pid>/sites/<siteId>
+        // We need to find the defaultUrl — fetch sites again (cached by underlying SDK in practice)
+        const sites = await listHostingSites(conn);
+        const siteName = externalId.slice('hosting:'.length);
+        const site = sites.find((s) => s.name === siteName);
+        const url = site?.defaultUrl;
+        if (!url) return { status: 'unknown', message: 'no defaultUrl' };
+        const res = await fetch(url, { method: 'HEAD' });
+        if (res.ok) return { status: 'ok' };
+        return { status: 'degraded', message: `HTTP ${res.status}` };
+      } catch (e) {
+        return { status: 'down', message: (e as Error).message };
+      }
+    }
+
+    // Project resource: probe Auth
     try {
       const app = appFor(conn);
       await getAuth(app).listUsers(1);
@@ -96,7 +150,9 @@ export const FirebaseProvider: Provider = {
     }
   },
 
-  async listTenants(conn, _externalId): Promise<TenantDTO[]> {
+  async listTenants(conn, externalId): Promise<TenantDTO[]> {
+    // Tenants belong to the Auth project — only emit for project resources
+    if (!externalId.startsWith('project:')) return [];
     const app = appFor(conn);
     try {
       const r = await getAuth(app).tenantManager().listTenants(1000);

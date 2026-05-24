@@ -20,7 +20,11 @@ export default async function ResourcesPage({ searchParams }: { searchParams: Pr
   });
   return (
     <div className="space-y-6">
-      <PageHeader title="Recursos" />
+      <PageHeader title="Recursos (todos os aplicativos)" />
+      <p className="text-sm text-zinc-500 -mt-4">
+        Visão global. Para ver recursos por aplicativo, acesse{' '}
+        <Link href="/workspaces" className="text-violet-600 hover:underline">Aplicativos →</Link>
+      </p>
 
       {/* Filter bar */}
       <form className="flex items-center gap-2 text-sm">

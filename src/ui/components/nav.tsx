@@ -1,13 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, LayoutGrid, Plug, Boxes, AlertTriangle, Settings } from 'lucide-react';
+import { Home, LayoutGrid, Boxes, AlertTriangle, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const items = [
   { href: '/',                   label: 'Visão geral',  Icon: Home },
   { href: '/workspaces',         label: 'Aplicativos',  Icon: LayoutGrid },
-  { href: '/connections',        label: 'Conexões',     Icon: Plug },
   { href: '/resources',          label: 'Recursos',     Icon: Boxes },
   { href: '/incidents',          label: 'Incidentes',   Icon: AlertTriangle },
   { href: '/settings/clients',   label: 'Configurações', Icon: Settings },

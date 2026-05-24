@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { listTenants, initializeAppMock, accessTokenMock } = vi.hoisted(() => ({
+const { listTenants, initializeAppMock, accessTokenMock, listUsersMock } = vi.hoisted(() => ({
   listTenants: vi.fn(),
   initializeAppMock: vi.fn(),
   accessTokenMock: vi.fn().mockResolvedValue({ token: 'fake-token' }),
+  listUsersMock: vi.fn().mockResolvedValue({ users: [] }),
 }));
 
 vi.mock('firebase-admin/app', () => ({
@@ -15,6 +16,7 @@ vi.mock('firebase-admin/app', () => ({
 
 vi.mock('firebase-admin/auth', () => ({
   getAuth: () => ({
+    listUsers: (...args: unknown[]) => listUsersMock(...args),
     tenantManager: () => ({
       listTenants: () => listTenants(),
     }),
@@ -46,15 +48,52 @@ describe('FirebaseProvider', () => {
     listTenants.mockReset();
     fetchMock.mockReset();
     initializeAppMock.mockClear();
+    listUsersMock.mockResolvedValue({ users: [] });
   });
 
   it('lists the project itself as a resource', async () => {
+    // No hosting sites
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ sites: [] }) });
     const r = await FirebaseProvider.listResources(conn);
     expect(r).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ externalId: 'project:demo-proj', kind: 'firebase-project' }),
       ]),
     );
+  });
+
+  it('lists hosting sites as firebase-hosting resources', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        sites: [
+          { name: 'projects/demo-proj/sites/demo-proj', defaultUrl: 'https://demo-proj.web.app', appId: 'app-1' },
+        ],
+      }),
+    });
+    const r = await FirebaseProvider.listResources(conn);
+    expect(r).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          externalId: 'hosting:projects/demo-proj/sites/demo-proj',
+          kind: 'firebase-hosting',
+          metadata: expect.objectContaining({ defaultUrl: 'https://demo-proj.web.app' }),
+        }),
+      ]),
+    );
+  });
+
+  it('handles hosting API failure gracefully', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 403 });
+    const r = await FirebaseProvider.listResources(conn);
+    // Should still have project resource
+    expect(r).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ externalId: 'project:demo-proj' }),
+      ]),
+    );
+    // Should NOT throw
+    expect(r.some((x) => x.kind === 'firebase-hosting')).toBe(false);
   });
 
   it('queries Cloud Billing for daily cost', async () => {
@@ -73,9 +112,15 @@ describe('FirebaseProvider', () => {
     expect(cost).toBeNull();
   });
 
-  it('lists auth tenants', async () => {
+  it('lists auth tenants for project resource', async () => {
     listTenants.mockResolvedValue({ tenants: [{ tenantId: 't1', displayName: 'Acme' }] });
     const t = await FirebaseProvider.listTenants(conn, 'project:demo-proj');
     expect(t).toEqual([{ externalId: 't1', displayName: 'Acme' }]);
+  });
+
+  it('returns no tenants for hosting resources', async () => {
+    const t = await FirebaseProvider.listTenants(conn, 'hosting:projects/demo-proj/sites/demo-proj');
+    expect(t).toEqual([]);
+    expect(listTenants).not.toHaveBeenCalled();
   });
 });
