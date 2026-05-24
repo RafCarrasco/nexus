@@ -19,6 +19,10 @@ const EXPECTED_SOURCE_PER_TYPE: Record<string, string> = {
 export async function runCost(now = new Date()): Promise<void> {
   const date = yesterdayUtc(now);
   const connections = await prisma.connection.findMany({ where: { status: 'active' } });
+  log.info('collector.runCost start', { count: connections.length, date: date.toISOString() });
+  let calls = 0;
+  let saved = 0;
+  let nulls = 0;
   for (const conn of connections) {
     let provider;
     try {
@@ -36,26 +40,36 @@ export async function runCost(now = new Date()): Promise<void> {
           where: { resourceId_date_source: { resourceId: r.id, date, source: expectedSource } },
         });
         if (existing) {
-          log.debug('cost.cap: snapshot exists, skipping API call', {
+          log.info('cost.cap skip (snapshot exists)', {
             connectionId: conn.id,
             resourceId: r.id,
+            externalId: r.externalId,
             source: expectedSource,
           });
           continue;
         }
       }
       try {
+        calls++;
+        log.info('cost.call', { connectionType: conn.type, resourceId: r.id, externalId: r.externalId });
         const cost = await provider.getDailyCost(view, r.externalId, date);
-        if (!cost) continue;
+        if (!cost) {
+          nulls++;
+          log.info('cost.null', { connectionType: conn.type, resourceId: r.id, externalId: r.externalId });
+          continue;
+        }
         await prisma.costSnapshot.upsert({
           where: { resourceId_date_source: { resourceId: r.id, date, source: cost.source } },
           create: { resourceId: r.id, date, amount: cost.amount, currency: cost.currency, source: cost.source },
           update: { amount: cost.amount, currency: cost.currency },
         });
+        saved++;
+        log.info('cost.saved', { resourceId: r.id, amount: cost.amount, currency: cost.currency, source: cost.source });
       } catch (e) {
         log.warn('cost failed', { connectionId: conn.id, resourceId: r.id, err: (e as Error).message });
       }
     }
   }
+  log.info('collector.runCost done', { calls, saved, nulls });
   await detectCostSpikes(date);
 }
