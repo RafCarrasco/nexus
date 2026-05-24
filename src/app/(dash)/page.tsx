@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { prisma } from '@/db/client';
 import { PageHeader } from '@/ui/components/page-header';
 import { StatCard } from '@/ui/components/stat-card';
@@ -6,6 +7,7 @@ import { WorkspaceCard } from '@/ui/components/workspace-card';
 import { Button } from '@/ui/components/button';
 import { formatMoney } from '@/lib/money';
 import { CostDisplay } from '@/ui/components/cost-display';
+import { aggregateStatus } from '@/lib/status';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +32,10 @@ export default async function OverviewPage() {
               include: {
                 _count: { select: { incidents: { where: { resolvedAt: null } } } },
                 costSnapshots: { where: { date: { gte: since } } },
+                incidents: {
+                  where: { resolvedAt: null },
+                  select: { severity: true, resolvedAt: true },
+                },
               },
             },
           },
@@ -61,9 +67,69 @@ export default async function OverviewPage() {
     .sort((a, b) => b[1].total - a[1].total)
     .slice(0, 5);
 
+  // Compute per-workspace status
+  const workspaceStatuses = workspaces.map((w) => {
+    const wResources = w.connections.flatMap((c) => c.resources);
+    const allInc = wResources.flatMap((r) => r.incidents);
+    return aggregateStatus(allInc);
+  });
+
+  const critCount = workspaceStatuses.filter((s) => s === 'crit').length;
+  const warnCount = workspaceStatuses.filter((s) => s === 'warn').length;
+
   return (
     <div className="space-y-8">
       <PageHeader title="Visão geral" />
+
+      {/* Status banner */}
+      {(critCount > 0 || warnCount > 0) && (
+        <div
+          className={`rounded-2xl border ${
+            critCount > 0 ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'
+          } p-4 flex items-start gap-3`}
+        >
+          <AlertCircle
+            className={`h-5 w-5 ${critCount > 0 ? 'text-red-600' : 'text-amber-600'} mt-0.5 shrink-0`}
+          />
+          <div className="flex-1 min-w-0">
+            <div
+              className={`text-sm font-semibold ${critCount > 0 ? 'text-red-900' : 'text-amber-900'}`}
+            >
+              {critCount > 0
+                ? `${critCount} aplicativo${critCount > 1 ? 's' : ''} em estado crítico`
+                : `${warnCount} aplicativo${warnCount > 1 ? 's' : ''} precisam de atenção`}
+            </div>
+            <div
+              className={`text-xs ${critCount > 0 ? 'text-red-700' : 'text-amber-700'} mt-0.5`}
+            >
+              Veja detalhes em{' '}
+              <Link href={'/incidents' as never} className="underline">
+                Incidentes
+              </Link>
+              .
+            </div>
+          </div>
+          <Link
+            href={'/incidents' as never}
+            className={`text-xs font-medium shrink-0 ${
+              critCount > 0
+                ? 'text-red-700 hover:text-red-900'
+                : 'text-amber-700 hover:text-amber-900'
+            }`}
+          >
+            Ver incidentes →
+          </Link>
+        </div>
+      )}
+
+      {critCount === 0 && warnCount === 0 && workspaces.length > 0 && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3 flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+          <span className="text-sm text-emerald-800">
+            Tudo funcionando normalmente em todos os aplicativos.
+          </span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Conexões" value={connections} href="/connections" />
@@ -92,28 +158,32 @@ export default async function OverviewPage() {
         {workspaces.length === 0 && (
           <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center">
             <div className="text-sm font-medium text-zinc-700">Nenhum aplicativo cadastrado</div>
-            <div className="mt-1 text-xs text-zinc-500">Crie um aplicativo pra agrupar conexões e recursos.</div>
+            <div className="mt-1 text-xs text-zinc-500">
+              Crie um aplicativo pra agrupar conexões e recursos.
+            </div>
             <Button asChild className="mt-4 bg-violet-600 hover:bg-violet-700 text-white rounded-xl">
               <Link href={'/workspaces/new' as never}>Criar primeiro aplicativo</Link>
             </Button>
           </div>
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {workspaces.map((w) => {
+          {workspaces.map((w, idx) => {
             const wResources = w.connections.flatMap((c) => c.resources);
             const wCost = wResources.reduce(
               (s, r) => s + r.costSnapshots.reduce((ss, x) => ss + Number(x.amount), 0),
-              0
+              0,
             );
             const wOpenInc = wResources.reduce((s, r) => s + r._count.incidents, 0);
             const wCurrency = wResources[0]?.costSnapshots[0]?.currency ?? 'USD';
             const wNoCostData = wResources.flatMap((r) => r.costSnapshots).length === 0;
+            const wStatus = workspaceStatuses[idx] ?? 'ok';
             return (
               <WorkspaceCard
                 key={w.id}
                 workspace={{ id: w.id, slug: w.slug, name: w.name, description: w.description }}
                 resourceCount={wResources.length}
                 openIncidents={wOpenInc}
+                status={wStatus}
                 cost30d={wCost}
                 currency={wCurrency}
                 notConfigured={wNoCostData}
@@ -126,7 +196,9 @@ export default async function OverviewPage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold tracking-tight text-zinc-900">Maiores gastos</h2>
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          {topSpenders.length === 0 && <p className="text-sm text-zinc-500">Sem dados de custo ainda.</p>}
+          {topSpenders.length === 0 && (
+            <p className="text-sm text-zinc-500">Sem dados de custo ainda.</p>
+          )}
           <ul className="divide-y divide-zinc-100">
             {topSpenders.map(([id, v]) => (
               <li key={id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">

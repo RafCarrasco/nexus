@@ -10,6 +10,8 @@ import { avatarColor, initial } from '@/lib/avatar';
 import { RunNow } from '@/app/(dash)/connections/run-now';
 import { DeleteConfirmDialog } from '@/ui/components/delete-confirm-dialog';
 import { ConnectionCard } from '@/ui/components/connection-card';
+import { StatusPill } from '@/ui/components/status-pill';
+import { aggregateStatus } from '@/lib/status';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +32,10 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
               tenants: true,
               _count: { select: { incidents: { where: { resolvedAt: null } } } },
               costSnapshots: { where: { date: { gte: since } } },
+              incidents: {
+                where: { resolvedAt: null },
+                select: { severity: true, resolvedAt: true },
+              },
             },
           },
         },
@@ -45,6 +51,9 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
   const currency = resources.flatMap((r) => r.costSnapshots)[0]?.currency ?? 'USD';
   const noCostData = resources.flatMap((r) => r.costSnapshots).length === 0;
   const openInc = resources.reduce((s, r) => s + r._count.incidents, 0);
+
+  const allResourceIncidents = resources.flatMap((r) => r.incidents);
+  const workspaceStatus = aggregateStatus(allResourceIncidents);
 
   const incidents = await prisma.incident.findMany({
     where: { resolvedAt: null, resource: { connection: { workspaceId: w.id } } },
@@ -63,8 +72,11 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
         >
           {initial(w.name)}
         </div>
-        <div className="flex-1">
-          <div className="text-2xl font-semibold tracking-tight text-zinc-900">{w.name}</div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="text-2xl font-semibold tracking-tight text-zinc-900">{w.name}</div>
+            <StatusPill status={workspaceStatus} size="md" count={openInc} />
+          </div>
           {w.description && <div className="text-sm text-zinc-500">{w.description}</div>}
         </div>
         <DeleteConfirmDialog

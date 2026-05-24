@@ -4,6 +4,8 @@ import { Nav } from '@/ui/components/nav';
 import { Breadcrumb } from '@/ui/components/breadcrumb';
 import { auth, signOut } from '@/auth/config';
 import { ChatWidget } from '@/ui/components/chat-widget';
+import { CommandPalette } from '@/ui/components/command-palette';
+import { PaletteHint } from '@/ui/components/palette-hint';
 
 function NexusMark() {
   return (
@@ -60,17 +62,17 @@ export default async function DashLayout({ children }: { children: ReactNode }) 
       {/* Main column */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top breadcrumb bar */}
-        <div className="border-b border-zinc-200 bg-white px-8 py-3">
+        <div className="border-b border-zinc-200 bg-white px-8 py-3 flex items-center justify-between">
           <Breadcrumb />
+          <PaletteHint />
         </div>
 
         {/* Page content */}
-        <main className="flex-1 p-8">
-          {children}
-        </main>
+        <main className="flex-1 p-8">{children}</main>
       </div>
 
       <ChatWidget />
+      <CommandPalette />
     </div>
   );
 }

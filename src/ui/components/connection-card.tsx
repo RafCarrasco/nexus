@@ -3,15 +3,18 @@ import Link from 'next/link';
 import { ChevronDown, AlertCircle, CheckCircle2, ExternalLink } from 'lucide-react';
 import { Badge } from '@/ui/components/badge';
 import { CostDisplay } from '@/ui/components/cost-display';
+import { StatusPill } from '@/ui/components/status-pill';
+import { aggregateStatus } from '@/lib/status';
 
 type Resource = {
   id: string;
   externalId: string;
   name: string;
   kind: string;
-  metadata: any; // Prisma JsonValue: can be string|number|boolean|null|object|array
+  metadata: unknown; // Prisma JsonValue: can be string|number|boolean|null|object|array
   _count: { incidents: number };
   costSnapshots: Array<{ amount: unknown; currency: string }>;
+  incidents: Array<{ severity: string; resolvedAt: Date | null }>;
 };
 
 type Props = {
@@ -42,6 +45,8 @@ export function ConnectionCard({ connection, trigger }: Props) {
   );
   const currency = connection.resources.flatMap((r) => r.costSnapshots)[0]?.currency ?? 'USD';
   const noCostData = connection.resources.flatMap((r) => r.costSnapshots).length === 0;
+  const allIncidents = connection.resources.flatMap((r) => r.incidents);
+  const connStatus = aggregateStatus(allIncidents);
 
   return (
     <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm open:shadow-md transition" open>
@@ -52,7 +57,7 @@ export function ConnectionCard({ connection, trigger }: Props) {
               <ChevronDown className="h-4 w-4 text-zinc-400 transition-transform group-open:rotate-0 -rotate-90" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-base font-semibold tracking-tight text-zinc-900">{connection.name}</span>
                 <Badge variant="outline" className="font-mono text-[10px] uppercase">
                   {connection.type}
@@ -63,6 +68,7 @@ export function ConnectionCard({ connection, trigger }: Props) {
                 >
                   {connection.status}
                 </Badge>
+                <StatusPill status={connStatus} count={totalIncidents} />
               </div>
               <div className="mt-1 text-xs text-zinc-500">
                 {connection.lastCollectedAt
@@ -116,17 +122,30 @@ export function ConnectionCard({ connection, trigger }: Props) {
                         {r.name}
                       </Link>
                     </div>
-                    {r.metadata?.defaultUrl && (
-                      <a
-                        href={String(r.metadata.defaultUrl)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-violet-600 hover:underline inline-flex items-center gap-1"
-                      >
-                        {String(r.metadata.defaultUrl)}
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    )}
+                    {(() => {
+                      const meta = r.metadata;
+                      if (
+                        meta !== null &&
+                        typeof meta === 'object' &&
+                        !Array.isArray(meta) &&
+                        'defaultUrl' in meta &&
+                        (meta as Record<string, unknown>)['defaultUrl']
+                      ) {
+                        const url = String((meta as Record<string, unknown>)['defaultUrl']);
+                        return (
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-violet-600 hover:underline inline-flex items-center gap-1"
+                          >
+                            {url}
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     {r._count.incidents > 0 ? (
