@@ -26,6 +26,16 @@ type SAJson = {
   [k: string]: unknown;
 };
 
+const PLACEHOLDER: Record<string, string> = {
+  vercel:     '{\n  "token": "your-vercel-token",\n  "teamId": "team_xxx (optional)"\n}',
+  github:     '{\n  "token": "ghp_...",\n  "org": "your-org (optional, defaults to your repos)"\n}',
+  cloudflare: '{\n  "token": "cf-api-token",\n  "accountId": "your-account-id (optional, needed for Workers)"\n}',
+  azure:      '{\n  "tenantId": "...",\n  "clientId": "...",\n  "clientSecret": "...",\n  "subscriptionId": "optional"\n}',
+  supabase:   '{\n  "token": "sbp_...",\n  "orgSlug": "your-org-slug"\n}',
+  docker:     '{}',
+  fake:       '{\n  "resourceCount": 3\n}',
+};
+
 export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRedirect, banner, forcedType }: Props) {
   const router = useRouter();
   const [name, setName] = useState('');
@@ -140,6 +150,10 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
             >
               <option value="firebase">firebase</option>
               <option value="supabase">supabase</option>
+              <option value="vercel">vercel</option>
+              <option value="github">github</option>
+              <option value="cloudflare">cloudflare</option>
+              <option value="azure">azure</option>
               <option value="docker">docker</option>
               <option value="fake">fake (dev only)</option>
             </select>
@@ -228,7 +242,7 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
               className="w-full min-h-[200px] rounded-md border border-zinc-200 px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500"
               value={config}
               onChange={(e) => setConfig(e.target.value)}
-              placeholder={'{\n  "url": "...",\n  "token": "..."\n}'}
+              placeholder={PLACEHOLDER[type] ?? '{\n  "url": "...",\n  "token": "..."\n}'}
             />
           </div>
         )}

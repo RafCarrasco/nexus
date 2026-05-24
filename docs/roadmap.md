@@ -57,3 +57,35 @@
 ---
 
 *Última atualização: 2026-05-24. Adicione itens via PR com `## Backlog` no final.*
+
+---
+
+## Provedores
+
+### Suportados agora
+
+| Provedor | Recursos | Custo | Atividade | Health |
+|----------|----------|-------|-----------|--------|
+| **firebase** | Projects, Hosting sites, Cloud Functions | Cloud Monitoring | — | Hosting URL HEAD |
+| **supabase** | Projects | Billing API | Database usage | `/health` endpoint |
+| **docker** | Containers | — | `StartedAt` | Container state + health check |
+| **vercel** | Projects | — (API pública não expõe custo) | Last deployment | `productionUrl` HEAD |
+| **github** | Repos (org ou user) | — (Billing API requer admin scope) | `pushed_at` | Sempre ok (repo existe) |
+| **cloudflare** | Zones + Workers scripts | — (Billing separado, fora do MVP) | `modified_on` | Zone hostname HEAD |
+| **azure** | Subscriptions ou App Services | — (Cost Management API, fora do MVP) | — | `defaultHostName` HEAD |
+| **fake** | Recursos sintéticos (dev) | — | — | — |
+
+### TODO — próximos provedores
+
+| Provedor | Prioridade | Notas |
+|----------|-----------|-------|
+| **AWS** | Alta | Usar AWS SDK ou STS/EC2/ECS via REST. Custo via Cost Explorer API. |
+| **GCP direto** | Média | Alternativa ao Firebase SA — enumerate projects via Resource Manager. |
+| **OpenAI usage** | Média | `/v1/usage` endpoint + API key. Custo diário por modelo. |
+| **Anthropic usage** | Média | Console usage API (quando disponível publicamente). |
+| **Stripe** | Média | Listar produtos/preços; MRR como "custo invertido". |
+| **Sentry** | Baixa | Organizations + Projects + error rate como health proxy. |
+| **Render** | Baixa | Services API; deploy timestamp para atividade. |
+| **Netlify** | Baixa | Sites API; deploy timestamp para atividade. |
+| **Resend** | Baixa | Domains + sending stats; bounce rate como health. |
+| **PlanetScale / Neon** | Baixa | DB branches; query throughput para atividade. |
