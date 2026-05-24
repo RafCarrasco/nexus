@@ -9,6 +9,7 @@ const createSchema = z.object({
   name: z.string().min(1).max(120),
   type: z.string().min(1),
   config: z.record(z.string(), z.unknown()).default({}),
+  workspaceId: z.string().nullable().optional(),
 });
 
 export async function GET(req: Request) {
@@ -18,7 +19,7 @@ export async function GET(req: Request) {
     orderBy: { createdAt: 'desc' },
     select: {
       id: true, name: true, type: true, status: true, lastError: true,
-      lastCollectedAt: true, ownerUserId: true, createdAt: true, updatedAt: true,
+      lastCollectedAt: true, ownerUserId: true, workspaceId: true, createdAt: true, updatedAt: true,
     },
   });
   return NextResponse.json(rows);
@@ -34,7 +35,7 @@ export async function POST(req: Request) {
   const parse = createSchema.safeParse(json);
   if (!parse.success) return new NextResponse(parse.error.message, { status: 400 });
 
-  const { name, type, config } = parse.data;
+  const { name, type, config, workspaceId } = parse.data;
   if (!listProviderTypes().includes(type)) {
     return new NextResponse(`unknown provider type: ${type}`, { status: 400 });
   }
@@ -52,7 +53,13 @@ export async function POST(req: Request) {
   }
 
   const row = await prisma.connection.create({
-    data: { name, type, credentials: encrypt(config) as unknown as Uint8Array<ArrayBuffer>, ownerUserId: user.id },
+    data: {
+      name,
+      type,
+      credentials: encrypt(config) as unknown as Uint8Array<ArrayBuffer>,
+      ownerUserId: user.id,
+      workspaceId: workspaceId ?? null,
+    },
     select: { id: true },
   });
   return NextResponse.json(row, { status: 201 });

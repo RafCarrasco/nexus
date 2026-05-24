@@ -6,6 +6,16 @@ datasource db {
   provider = "postgresql"
 }
 
+model Workspace {
+  id          String       @id @default(cuid())
+  slug        String       @unique
+  name        String
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  connections Connection[]
+}
+
 model Connection {
   id              String     @id @default(cuid())
   name            String
@@ -15,9 +25,11 @@ model Connection {
   lastError       String?
   lastCollectedAt DateTime?
   ownerUserId     String
+  workspaceId     String?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
   resources       Resource[]
+  workspace       Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
 }
 
 model Resource {
