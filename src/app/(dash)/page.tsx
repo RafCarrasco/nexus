@@ -78,6 +78,7 @@ export default async function OverviewPage() {
           label="Custo (30 d)"
           value={<CostDisplay amount={totalCost} currency={currency} notConfigured={noCostData} size="lg" />}
           trend={costTrend.length > 1 ? costTrend : undefined}
+          href="/cost"
         />
       </div>
 
