@@ -20,14 +20,14 @@ export default async function ResourcesPage({ searchParams }: { searchParams: Pr
   });
   return (
     <div className="space-y-6">
-      <PageHeader title="Resources" />
+      <PageHeader title="Recursos" />
 
       {/* Filter bar */}
       <form className="flex items-center gap-2 text-sm">
         <input
           name="q"
           defaultValue={sp.q ?? ''}
-          placeholder="Search resources…"
+          placeholder="buscar…"
           className="rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white"
         />
         <select
@@ -35,7 +35,7 @@ export default async function ResourcesPage({ searchParams }: { searchParams: Pr
           defaultValue={sp.type ?? ''}
           className="rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white"
         >
-          <option value="">All types</option>
+          <option value="">todos os tipos</option>
           <option value="firebase">firebase</option>
           <option value="supabase">supabase</option>
           <option value="docker">docker</option>
@@ -44,7 +44,7 @@ export default async function ResourcesPage({ searchParams }: { searchParams: Pr
           type="submit"
           className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
         >
-          Filter
+          Filtrar
         </button>
       </form>
 
@@ -53,12 +53,12 @@ export default async function ResourcesPage({ searchParams }: { searchParams: Pr
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Kind</TableHead>
-              <TableHead>Provider</TableHead>
-              <TableHead>Region</TableHead>
-              <TableHead>Last activity</TableHead>
-              <TableHead>Open incidents</TableHead>
+              <TableHead>Nome</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Provedor</TableHead>
+              <TableHead>Região</TableHead>
+              <TableHead>Última atividade</TableHead>
+              <TableHead>Incidentes abertos</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

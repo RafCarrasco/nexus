@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Nav } from '@/ui/components/nav';
 import { Breadcrumb } from '@/ui/components/breadcrumb';
 import { auth, signOut } from '@/auth/config';
+import { ChatWidget } from '@/ui/components/chat-widget';
 
 function NexusMark() {
   return (
@@ -43,7 +44,7 @@ export default async function DashLayout({ children }: { children: ReactNode }) 
               type="submit"
               className="text-xs text-zinc-500 hover:text-zinc-900 underline underline-offset-2 transition-colors"
             >
-              Sign out
+              Sair
             </button>
           </form>
         </div>
@@ -61,6 +62,8 @@ export default async function DashLayout({ children }: { children: ReactNode }) 
           {children}
         </main>
       </div>
+
+      <ChatWidget />
     </div>
   );
 }

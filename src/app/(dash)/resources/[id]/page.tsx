@@ -28,26 +28,26 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
       <PageHeader title={r.name} />
       <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
-          <CardHeader><CardTitle>Provider</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Provedor</CardTitle></CardHeader>
           <CardContent><Badge>{r.connection.type}</Badge> · {r.connection.name}</CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Last activity</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Última atividade</CardTitle></CardHeader>
           <CardContent className="text-2xl">
             {r.activityLog?.lastSeenAt?.toISOString().slice(0, 19).replace('T', ' ') ?? '—'}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>30-day cost</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Custo 30 dias</CardTitle></CardHeader>
           <CardContent className="text-2xl">{formatMoney(total30d, currency)}</CardContent>
         </Card>
       </div>
       <section className="p-6">
         <h2 className="mb-2 text-lg font-semibold">Tenants</h2>
-        {r.tenants.length === 0 && <p className="text-sm text-zinc-500">No tenants discovered.</p>}
+        {r.tenants.length === 0 && <p className="text-sm text-zinc-500">Nenhum tenant descoberto.</p>}
         {r.tenants.length > 0 && (
           <Table>
-            <TableHeader><TableRow><TableHead>Tenant</TableHead><TableHead>External ID</TableHead><TableHead>Client</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Tenant</TableHead><TableHead>ID externo</TableHead><TableHead>Cliente</TableHead></TableRow></TableHeader>
             <TableBody>
               {r.tenants.map((t) => (
                 <TableRow key={t.id}>
@@ -61,11 +61,11 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
         )}
       </section>
       <section className="p-6">
-        <h2 className="mb-2 text-lg font-semibold">Recent incidents</h2>
-        {r.incidents.length === 0 && <p className="text-sm text-zinc-500">No incidents.</p>}
+        <h2 className="mb-2 text-lg font-semibold">Incidentes recentes</h2>
+        {r.incidents.length === 0 && <p className="text-sm text-zinc-500">Sem incidentes.</p>}
         {r.incidents.length > 0 && (
           <Table>
-            <TableHeader><TableRow><TableHead>Opened</TableHead><TableHead>Type</TableHead><TableHead>Severity</TableHead><TableHead>Message</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Aberto em</TableHead><TableHead>Tipo</TableHead><TableHead>Severidade</TableHead><TableHead>Mensagem</TableHead></TableRow></TableHeader>
             <TableBody>
               {r.incidents.map((i) => (
                 <TableRow key={i.id}>
@@ -80,9 +80,9 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
         )}
       </section>
       <section className="p-6">
-        <h2 className="mb-2 text-lg font-semibold">Cost (last 30 snapshots)</h2>
+        <h2 className="mb-2 text-lg font-semibold">Custo (últimos 30 snapshots)</h2>
         <Table>
-          <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Amount</TableHead><TableHead>Source</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Valor</TableHead><TableHead>Origem</TableHead></TableRow></TableHeader>
           <TableBody>
             {r.costSnapshots.map((c) => (
               <TableRow key={c.id}>

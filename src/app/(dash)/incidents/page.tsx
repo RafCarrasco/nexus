@@ -20,24 +20,24 @@ export default async function IncidentsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Incidents"
-        subtitle={open.length > 0 ? `${open.length} open incident${open.length !== 1 ? 's' : ''}` : undefined}
+        title="Incidentes"
+        subtitle={open.length > 0 ? `${open.length} incidente${open.length !== 1 ? 's' : ''} aberto${open.length !== 1 ? 's' : ''}` : undefined}
       />
 
       {/* Open incidents */}
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-zinc-900">
-          Open <span className="text-zinc-400 font-normal">({open.length})</span>
+          Abertos <span className="text-zinc-400 font-normal">({open.length})</span>
         </h2>
         <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Opened</TableHead>
-                <TableHead>Resource</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Severity</TableHead>
-                <TableHead>Message</TableHead>
+                <TableHead>Aberto em</TableHead>
+                <TableHead>Recurso</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Severidade</TableHead>
+                <TableHead>Mensagem</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -45,7 +45,7 @@ export default async function IncidentsPage() {
               {open.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-zinc-400 py-8">
-                    No open incidents
+                    Sem incidentes.
                   </TableCell>
                 </TableRow>
               )}
@@ -74,22 +74,22 @@ export default async function IncidentsPage() {
 
       {/* Recently resolved */}
       <section className="space-y-3">
-        <h2 className="text-base font-semibold text-zinc-900">Recently resolved</h2>
+        <h2 className="text-base font-semibold text-zinc-900">Resolvidos recentemente</h2>
         <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Resolved</TableHead>
-                <TableHead>Resource</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Message</TableHead>
+                <TableHead>Resolvido</TableHead>
+                <TableHead>Recurso</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Mensagem</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {recent.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-zinc-400 py-8">
-                    No resolved incidents yet
+                    Sem incidentes.
                   </TableCell>
                 </TableRow>
               )}

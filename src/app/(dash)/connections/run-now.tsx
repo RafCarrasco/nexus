@@ -17,7 +17,7 @@ export function RunNow() {
         })
       }
     >
-      {pending ? 'Running…' : 'Run collector now'}
+      {pending ? 'Rodando…' : 'Rodar coletor agora'}
     </Button>
   );
 }

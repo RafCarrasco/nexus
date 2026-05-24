@@ -5,11 +5,11 @@ import { Home, Plug, Boxes, AlertTriangle, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const items = [
-  { href: '/',                   label: 'Overview',    Icon: Home },
-  { href: '/connections',        label: 'Connections', Icon: Plug },
-  { href: '/resources',          label: 'Resources',   Icon: Boxes },
-  { href: '/incidents',          label: 'Incidents',   Icon: AlertTriangle },
-  { href: '/settings/clients',   label: 'Settings',    Icon: Settings },
+  { href: '/',                   label: 'Visão geral',  Icon: Home },
+  { href: '/connections',        label: 'Conexões',     Icon: Plug },
+  { href: '/resources',          label: 'Recursos',     Icon: Boxes },
+  { href: '/incidents',          label: 'Incidentes',   Icon: AlertTriangle },
+  { href: '/settings/clients',   label: 'Configurações', Icon: Settings },
 ] as const;
 
 export function Nav() {

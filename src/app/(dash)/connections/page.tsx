@@ -17,11 +17,11 @@ export default async function ConnectionsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Connections"
+        title="Conexões"
         action={
           <>
             <RunNow />
-            <Button asChild><Link href="/connections/new">New connection</Link></Button>
+            <Button asChild><Link href="/connections/new">Nova conexão</Link></Button>
           </>
         }
       />
@@ -29,11 +29,11 @@ export default async function ConnectionsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Type</TableHead>
+              <TableHead>Nome</TableHead>
+              <TableHead>Tipo</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Last collected</TableHead>
-              <TableHead>Last error</TableHead>
+              <TableHead>Última coleta</TableHead>
+              <TableHead>Último erro</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

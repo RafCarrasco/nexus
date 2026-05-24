@@ -41,7 +41,7 @@ export default function LoginPage() {
             <NexusMark />
             <div>
               <div className="text-2xl font-semibold tracking-tight text-zinc-900">Nexus</div>
-              <div className="text-sm text-zinc-500">Internal observability platform</div>
+              <div className="text-sm text-zinc-500">Plataforma interna de observabilidade</div>
             </div>
           </div>
 
@@ -59,7 +59,7 @@ export default function LoginPage() {
               className="space-y-4"
             >
               <div className="space-y-1">
-                <Label htmlFor="email">Work email</Label>
+                <Label htmlFor="email">Email corporativo</Label>
                 <Input
                   id="email"
                   name="email"
@@ -71,7 +71,7 @@ export default function LoginPage() {
               </div>
               {requireDevPassword && (
                 <div className="space-y-1">
-                  <Label htmlFor="password">Temporary password</Label>
+                  <Label htmlFor="password">Senha temporária</Label>
                   <Input
                     id="password"
                     name="password"
@@ -86,10 +86,10 @@ export default function LoginPage() {
                 type="submit"
                 className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl py-2.5 font-medium"
               >
-                Sign in
+                Entrar com email
               </Button>
               <p className="text-xs text-amber-700 bg-amber-50/60 border border-amber-200/60 rounded-lg p-3">
-                Temporary access while the Microsoft Entra ID app registration is pending.
+                Acesso temporário enquanto o app do Microsoft Entra ID está sendo registrado.
               </p>
             </form>
           ) : (
@@ -102,7 +102,7 @@ export default function LoginPage() {
             >
               <Button type="submit" className="w-full gap-2">
                 <MicrosoftLogo />
-                Continue with Microsoft
+                Continuar com Microsoft
               </Button>
             </form>
           )}

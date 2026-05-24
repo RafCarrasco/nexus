@@ -9,17 +9,17 @@ export default async function ClientsPage() {
   const clients = await prisma.client.findMany({ orderBy: { name: 'asc' } });
   return (
     <div className="space-y-6">
-      <PageHeader title="Clients" />
+      <PageHeader title="Clientes" />
 
       {/* Add client form */}
       <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h2 className="text-sm font-semibold text-zinc-900 mb-4">Add client</h2>
+        <h2 className="text-sm font-semibold text-zinc-900 mb-4">Adicionar cliente</h2>
         <form action={createClient} className="flex items-end gap-3">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-zinc-600">Name</label>
+            <label className="text-xs font-medium text-zinc-600">Nome</label>
             <Input name="name" placeholder="Acme Inc." className="w-64" />
           </div>
-          <Button type="submit">Add client</Button>
+          <Button type="submit">Adicionar cliente</Button>
         </form>
       </div>
 
@@ -28,8 +28,8 @@ export default async function ClientsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Created</TableHead>
+              <TableHead>Nome</TableHead>
+              <TableHead>Criado em</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
@@ -37,7 +37,7 @@ export default async function ClientsPage() {
             {clients.length === 0 && (
               <TableRow>
                 <TableCell colSpan={3} className="text-center text-zinc-400 py-8">
-                  No clients yet
+                  Nenhum cliente ainda.
                 </TableCell>
               </TableRow>
             )}
@@ -48,7 +48,7 @@ export default async function ClientsPage() {
                 <TableCell>
                   <form action={deleteClient}>
                     <input type="hidden" name="id" value={c.id} />
-                    <Button type="submit" variant="outline" size="sm">Delete</Button>
+                    <Button type="submit" variant="outline" size="sm">Excluir</Button>
                   </form>
                 </TableCell>
               </TableRow>

@@ -5,11 +5,11 @@ import { cn } from "@/lib/utils";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
-export const metadata = { title: 'Nexus', description: 'Internal observability' };
+export const metadata = { title: 'Nexus', description: 'Plataforma interna de observabilidade' };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={cn("font-sans", geist.variable)}>
+    <html lang="pt-BR" className={cn("font-sans", geist.variable)}>
       <body className="min-h-screen bg-zinc-50 text-zinc-900 antialiased">{children}</body>
     </html>
   );

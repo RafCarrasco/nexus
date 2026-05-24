@@ -22,7 +22,7 @@ export function ResolveButton({ id }: { id: string }) {
         })
       }
     >
-      Resolve
+      Resolver
     </Button>
   );
 }

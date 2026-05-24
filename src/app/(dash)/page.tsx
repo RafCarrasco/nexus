@@ -42,28 +42,28 @@ export default async function OverviewPage() {
 
   return (
     <div>
-      <PageHeader title="Overview" />
+      <PageHeader title="Visão geral" />
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
-          label="Connections"
+          label="Conexões"
           value={connections}
           href="/connections"
         />
         <StatCard
-          label="Resources"
+          label="Recursos"
           value={resources}
           href="/resources"
         />
         <StatCard
-          label="Open incidents"
+          label="Incidentes abertos"
           value={openIncidents}
           href="/incidents"
           accent={openIncidents > 0 ? 'danger' : 'default'}
         />
         <StatCard
-          label="Cost (30 d)"
+          label="Custo (30 d)"
           value={formatMoney(totalCost, currency)}
           trend={costTrend.length > 1 ? costTrend : undefined}
         />
@@ -71,9 +71,9 @@ export default async function OverviewPage() {
 
       {/* Top spenders */}
       <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-zinc-900 mb-4">Top spenders</h2>
+        <h2 className="text-base font-semibold text-zinc-900 mb-4">Maiores gastos</h2>
         {topSpenders.length === 0 ? (
-          <p className="text-sm text-zinc-500">No cost data yet.</p>
+          <p className="text-sm text-zinc-500">Sem dados de custo ainda.</p>
         ) : (
           <ul>
             {topSpenders.map(([id, v]) => (

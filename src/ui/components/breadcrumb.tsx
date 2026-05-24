@@ -4,13 +4,13 @@ import { usePathname } from 'next/navigation';
 import { ChevronRight } from 'lucide-react';
 
 const LABELS: Record<string, string> = {
-  connections: 'Connections',
-  resources: 'Resources',
-  incidents: 'Incidents',
-  settings: 'Settings',
-  clients: 'Clients',
-  allocations: 'Allocations',
-  new: 'New',
+  connections: 'Conexões',
+  resources: 'Recursos',
+  incidents: 'Incidentes',
+  settings: 'Configurações',
+  clients: 'Clientes',
+  allocations: 'Alocações',
+  new: 'Nova',
 };
 
 function segmentLabel(seg: string): string {
@@ -32,7 +32,7 @@ export function Breadcrumb() {
   }
 
   if (crumbs.length === 1) {
-    crumbs.push({ label: 'Overview', href: '/' });
+    crumbs.push({ label: 'Visão geral', href: '/' });
   }
 
   return (

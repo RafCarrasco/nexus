@@ -14,7 +14,7 @@ export default async function AllocationsPage() {
 
   const clientOptions = (selected?: string | null) => (
     <>
-      <option value="">— unassigned —</option>
+      <option value="">— não atribuído —</option>
       {clients.map((c) => (
         <option key={c.id} value={c.id} selected={c.id === selected}>{c.name}</option>
       ))}
@@ -23,19 +23,19 @@ export default async function AllocationsPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader title="Client allocations" />
+      <PageHeader title="Alocações por cliente" />
 
       {/* Resources section */}
       <section className="space-y-3">
-        <h2 className="text-base font-semibold text-zinc-900">Resources</h2>
+        <h2 className="text-base font-semibold text-zinc-900">Recursos</h2>
         <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Resource</TableHead>
-                <TableHead>Provider</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>% share</TableHead>
+                <TableHead>Recurso</TableHead>
+                <TableHead>Provedor</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>% participação</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -54,7 +54,7 @@ export default async function AllocationsPage() {
                         {clientOptions(r.clientId)}
                       </select>
                       <Input name="allocationPct" defaultValue={r.allocationPct ?? ''} placeholder="100" className="w-20" />
-                      <Button type="submit" size="sm">Save</Button>
+                      <Button type="submit" size="sm">Salvar</Button>
                     </form>
                   </TableCell>
                   <TableCell colSpan={2} />
@@ -73,8 +73,8 @@ export default async function AllocationsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Tenant</TableHead>
-                <TableHead>Resource</TableHead>
-                <TableHead>Client</TableHead>
+                <TableHead>Recurso</TableHead>
+                <TableHead>Cliente</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -92,7 +92,7 @@ export default async function AllocationsPage() {
                       >
                         {clientOptions(t.clientId)}
                       </select>
-                      <Button type="submit" size="sm">Save</Button>
+                      <Button type="submit" size="sm">Salvar</Button>
                     </form>
                   </TableCell>
                   <TableCell />

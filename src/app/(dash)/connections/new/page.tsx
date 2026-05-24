@@ -39,11 +39,11 @@ export default function NewConnectionPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="New connection" />
+      <PageHeader title="Nova conexão" />
 
       <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm max-w-2xl space-y-5">
         <div className="space-y-2">
-          <Label>Name</Label>
+          <Label>Nome</Label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -53,7 +53,7 @@ export default function NewConnectionPage() {
         </div>
 
         <div className="space-y-2">
-          <Label>Type</Label>
+          <Label>Tipo</Label>
           <select
             className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white"
             value={type}
@@ -67,7 +67,7 @@ export default function NewConnectionPage() {
         </div>
 
         <div className="space-y-2">
-          <Label>Config (JSON)</Label>
+          <Label>Configuração (JSON)</Label>
           <textarea
             className="w-full min-h-[240px] rounded-md border border-zinc-200 px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500"
             value={config}
@@ -84,10 +84,10 @@ export default function NewConnectionPage() {
 
         <div className="flex gap-3">
           <Button onClick={submit} disabled={busy || !name}>
-            {busy ? 'Saving…' : 'Save connection'}
+            {busy ? 'Salvando…' : 'Salvar conexão'}
           </Button>
           <Button variant="outline" onClick={() => router.back()} disabled={busy}>
-            Cancel
+            Cancelar
           </Button>
         </div>
       </div>
