@@ -3,8 +3,9 @@ import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
 
-const devLoginEnabled = process.env.NEXUS_DEV_LOGIN === '1';
-const requireDevPassword = !!process.env.NEXUS_DEV_PASSWORD;
+// Force runtime rendering so process.env is read per-request from the
+// running container, not baked at build time.
+export const dynamic = 'force-dynamic';
 
 function NexusMark() {
   return (
@@ -28,6 +29,9 @@ function MicrosoftLogo() {
 }
 
 export default function LoginPage() {
+  // Evaluated per-request thanks to `export const dynamic = 'force-dynamic'`.
+  const devLoginEnabled = process.env.NEXUS_DEV_LOGIN === '1';
+  const requireDevPassword = !!process.env.NEXUS_DEV_PASSWORD;
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 px-4">
       <div className="w-full max-w-md">
