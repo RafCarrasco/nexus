@@ -21,11 +21,11 @@ function projectId(conn: ConnectionView): string {
   return (conn.config.serviceAccount as SAJson).project_id;
 }
 
-function billingAccount(conn: ConnectionView): string | null {
-  return (conn.config.billingAccountId as string | undefined) ?? null;
-}
 
-async function googleAccessToken(conn: ConnectionView, scopes: string[]): Promise<string> {
+async function googleAccessToken(
+  conn: ConnectionView,
+  scopes: string[] = ['https://www.googleapis.com/auth/cloud-platform.read-only'],
+): Promise<string> {
   const sa = conn.config.serviceAccount as SAJson;
   const auth = new GoogleAuth({
     credentials: {
@@ -39,9 +39,6 @@ async function googleAccessToken(conn: ConnectionView, scopes: string[]): Promis
   return token;
 }
 
-function formatDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
 
 type HostingSite = {
   name: string;
@@ -60,6 +57,29 @@ async function listHostingSites(conn: ConnectionView): Promise<HostingSite[]> {
     if (!res.ok) return [];
     const json = (await res.json()) as { sites?: HostingSite[] };
     return json.sites ?? [];
+  } catch {
+    return [];
+  }
+}
+
+type CloudFunction = {
+  name: string;
+  state?: string;
+  buildConfig?: { runtime?: string; entryPoint?: string };
+  serviceConfig?: { uri?: string };
+};
+
+async function listCloudFunctions(conn: ConnectionView): Promise<CloudFunction[]> {
+  try {
+    const token = await googleAccessToken(conn, ['https://www.googleapis.com/auth/cloud-platform.read-only']);
+    const pid = projectId(conn);
+    const res = await fetch(
+      `https://cloudfunctions.googleapis.com/v2/projects/${pid}/locations/-/functions`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!res.ok) return [];
+    const json = (await res.json()) as { functions?: CloudFunction[] };
+    return json.functions ?? [];
   } catch {
     return [];
   }
@@ -91,26 +111,58 @@ export const FirebaseProvider: Provider = {
       },
     }));
 
-    return [projectResource, ...hostingResources];
+    const functions = await listCloudFunctions(conn);
+    const functionResources: ResourceDTO[] = functions.map((fn) => ({
+      externalId: `function:${fn.name}`,
+      name: fn.name.split('/').pop()!,
+      kind: 'firebase-function',
+      metadata: {
+        state: fn.state,
+        runtime: fn.buildConfig?.runtime,
+        entryPoint: fn.buildConfig?.entryPoint,
+        url: fn.serviceConfig?.uri,
+        projectId: id,
+      },
+    }));
+
+    return [projectResource, ...hostingResources, ...functionResources];
   },
 
   async getDailyCost(conn, _externalId, date): Promise<CostDTO | null> {
-    const billing = billingAccount(conn);
-    if (!billing) return null;
+    // Only project resource carries cost via Cloud Monitoring
+    if (_externalId && !_externalId.startsWith('project:')) return null;
     try {
-      const token = await googleAccessToken(conn, ['https://www.googleapis.com/auth/cloud-billing.readonly']);
-      const day = formatDate(date);
-      const url =
-        `https://cloudbilling.googleapis.com/v1/billingAccounts/${billing}` +
-        `:queryCost?startDate=${day}&endDate=${day}&filter=project:${projectId(conn)}`;
+      const token = await googleAccessToken(conn, ['https://www.googleapis.com/auth/monitoring.read']);
+      const project = projectId(conn);
+      const start = new Date(date);
+      start.setUTCHours(0, 0, 0, 0);
+      const end = new Date(date);
+      end.setUTCHours(23, 59, 59, 999);
+      const params = new URLSearchParams({
+        filter: `metric.type="billing.googleapis.com/billing/total_cost" AND resource.labels.project_id="${project}"`,
+        'interval.startTime': start.toISOString(),
+        'interval.endTime': end.toISOString(),
+        'aggregation.alignmentPeriod': '86400s',
+        'aggregation.perSeriesAligner': 'ALIGN_SUM',
+      });
+      const url = `https://monitoring.googleapis.com/v3/projects/${project}/timeSeries?${params}`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) return null;
-      const json = (await res.json()) as { amount?: { units?: string; nanos?: number; currencyCode?: string } };
-      const a = json.amount;
-      if (!a) return null;
-      const units = Number(a.units ?? 0);
-      const nanos = (a.nanos ?? 0) / 1e9;
-      return { amount: units + nanos, currency: a.currencyCode ?? 'USD', source: 'cloud-billing' };
+      const json = (await res.json()) as {
+        timeSeries?: Array<{
+          points?: Array<{ value?: { doubleValue?: number } }>;
+          metric?: { labels?: { currency?: string } };
+        }>;
+      };
+      if (!json.timeSeries?.length) return null;
+      let total = 0;
+      let currency = 'USD';
+      for (const ts of json.timeSeries) {
+        currency = ts.metric?.labels?.currency ?? currency;
+        for (const p of ts.points ?? []) total += p.value?.doubleValue ?? 0;
+      }
+      if (total === 0) return null;
+      return { amount: total, currency, source: 'cloud-monitoring' };
     } catch {
       return null;
     }
@@ -122,6 +174,11 @@ export const FirebaseProvider: Provider = {
   },
 
   async getHealth(conn, externalId): Promise<HealthDTO> {
+    // Function resources: return unknown (state is captured at collection time in metadata)
+    if (externalId.startsWith('function:')) {
+      return { status: 'unknown', message: 'state captured at collection time' };
+    }
+
     // Hosting resources: probe the defaultUrl
     if (externalId.startsWith('hosting:')) {
       try {

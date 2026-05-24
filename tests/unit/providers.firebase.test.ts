@@ -39,7 +39,6 @@ const conn = {
   type: 'firebase',
   config: {
     serviceAccount: { project_id: 'demo-proj', client_email: 'x@y', private_key: 'k' },
-    billingAccountId: '000000-AAAAAA-BBBBBB',
   },
 };
 
@@ -96,20 +95,74 @@ describe('FirebaseProvider', () => {
     expect(r.some((x) => x.kind === 'firebase-hosting')).toBe(false);
   });
 
-  it('queries Cloud Billing for daily cost', async () => {
+  it('queries Cloud Monitoring for daily cost', async () => {
     fetchMock.mockResolvedValue({
       ok: true,
-      json: async () => ({ amount: { units: '4', nanos: 250000000, currencyCode: 'USD' } }),
+      json: async () => ({
+        timeSeries: [
+          {
+            metric: { labels: { currency: 'USD' } },
+            points: [{ value: { doubleValue: 4.25 } }],
+          },
+        ],
+      }),
     });
     const cost = await FirebaseProvider.getDailyCost(conn, 'project:demo-proj', new Date('2026-05-22T00:00:00Z'));
-    expect(cost).toEqual({ amount: 4.25, currency: 'USD', source: 'cloud-billing' });
+    expect(cost).toEqual({ amount: 4.25, currency: 'USD', source: 'cloud-monitoring' });
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
-  it('returns null cost if billing API errors', async () => {
-    fetchMock.mockResolvedValue({ ok: false, status: 403, text: async () => 'forbidden' });
+  it('returns null cost if monitoring API errors', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 403 });
     const cost = await FirebaseProvider.getDailyCost(conn, 'project:demo-proj', new Date());
     expect(cost).toBeNull();
+  });
+
+  it('returns null cost for non-project resources', async () => {
+    const cost = await FirebaseProvider.getDailyCost(conn, 'hosting:projects/demo-proj/sites/x', new Date());
+    expect(cost).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('lists Cloud Functions as firebase-function resources', async () => {
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ sites: [] }) }) // hosting
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          functions: [
+            {
+              name: 'projects/demo-proj/locations/us-central1/functions/myFn',
+              state: 'ACTIVE',
+              buildConfig: { runtime: 'nodejs20', entryPoint: 'myFn' },
+              serviceConfig: { uri: 'https://my-fn.run.app' },
+            },
+            {
+              name: 'projects/demo-proj/locations/us-central1/functions/otherFn',
+              state: 'ACTIVE',
+              buildConfig: { runtime: 'nodejs20', entryPoint: 'otherFn' },
+            },
+          ],
+        }),
+      });
+    const r = await FirebaseProvider.listResources(conn);
+    const fns = r.filter((x) => x.kind === 'firebase-function');
+    expect(fns).toHaveLength(2);
+    expect(fns[0]).toMatchObject({
+      externalId: 'function:projects/demo-proj/locations/us-central1/functions/myFn',
+      name: 'myFn',
+      kind: 'firebase-function',
+      metadata: expect.objectContaining({ state: 'ACTIVE', url: 'https://my-fn.run.app' }),
+    });
+  });
+
+  it('handles functions API failure gracefully', async () => {
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ sites: [] }) }) // hosting
+      .mockResolvedValueOnce({ ok: false, status: 403 }); // functions 403
+    const r = await FirebaseProvider.listResources(conn);
+    expect(r.some((x) => x.kind === 'firebase-function')).toBe(false);
+    expect(r).toEqual(expect.arrayContaining([expect.objectContaining({ kind: 'firebase-project' })]));
   });
 
   it('lists auth tenants for project resource', async () => {
