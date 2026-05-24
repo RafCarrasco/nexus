@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatMoney } from '@/lib/money';
 import { avatarColor, initial } from '@/lib/avatar';
 import { RunNow } from '@/app/(dash)/connections/run-now';
+import { DeleteConfirmDialog } from '@/ui/components/delete-confirm-dialog';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,10 +69,23 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
         >
           {initial(w.name)}
         </div>
-        <div>
+        <div className="flex-1">
           <div className="text-2xl font-semibold tracking-tight text-zinc-900">{w.name}</div>
           {w.description && <div className="text-sm text-zinc-500">{w.description}</div>}
         </div>
+        <DeleteConfirmDialog
+          trigger={
+            <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50 border-red-200">
+              Excluir aplicativo
+            </Button>
+          }
+          title="Excluir aplicativo"
+          confirmName={w.name}
+          inputLabel="Digite o nome do aplicativo para confirmar"
+          description={`Aplicativo: ${w.name}\n\nIsto vai apagar o aplicativo permanentemente. As conexões dentro dele NÃO serão apagadas — elas ficarão sem aplicativo associado (não atribuídas).`}
+          endpoint={`/api/workspaces/${w.id}`}
+          onSuccessRedirect="/workspaces"
+        />
       </div>
 
       {/* Stat cards */}
@@ -110,6 +124,7 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
                   <TableHead>Status</TableHead>
                   <TableHead>Última coleta</TableHead>
                   <TableHead>Último erro</TableHead>
+                  <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -130,6 +145,20 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
                             {c.lastError.slice(0, 60)}{c.lastError.length > 60 ? '…' : ''}
                           </span>
                         ) : '—'}
+                      </TableCell>
+                      <TableCell>
+                        <DeleteConfirmDialog
+                          trigger={
+                            <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50">
+                              Excluir
+                            </Button>
+                          }
+                          title="Excluir conexão"
+                          confirmName={c.name}
+                          inputLabel="Digite o nome da conexão para confirmar"
+                          description={`Conexão: ${c.name} (${c.type})\n\nIsto vai apagar a conexão e TODOS os recursos descobertos por ela (e seus incidentes, custos e tenants).`}
+                          endpoint={`/api/connections/${c.id}`}
+                        />
                       </TableCell>
                     </TableRow>
                   );

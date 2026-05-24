@@ -3,8 +3,10 @@ import { prisma } from '@/db/client';
 import { PageHeader } from '@/ui/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
 import { Badge } from '@/ui/components/badge';
+import { Button } from '@/ui/components/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { formatMoney } from '@/lib/money';
+import { DeleteConfirmDialog } from '@/ui/components/delete-confirm-dialog';
 
 export default async function ResourceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -25,7 +27,24 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
 
   return (
     <>
-      <PageHeader title={r.name} />
+      <PageHeader
+        title={r.name}
+        action={
+          <DeleteConfirmDialog
+            trigger={
+              <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50 border-red-200">
+                Excluir recurso
+              </Button>
+            }
+            title="Excluir recurso"
+            confirmName={r.name}
+            inputLabel="Digite o nome do recurso para confirmar"
+            description={`Recurso: ${r.name} (${r.kind})\nConexão: ${r.connection.name}\n\nIsto vai apagar o recurso permanentemente, junto com todos os seus tenants, snapshots de custo, log de atividade e incidentes.`}
+            endpoint={`/api/resources/${r.id}`}
+            onSuccessRedirect="/resources"
+          />
+        }
+      />
       <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader><CardTitle>Provedor</CardTitle></CardHeader>
@@ -47,13 +66,27 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
         {r.tenants.length === 0 && <p className="text-sm text-zinc-500">Nenhum tenant descoberto.</p>}
         {r.tenants.length > 0 && (
           <Table>
-            <TableHeader><TableRow><TableHead>Tenant</TableHead><TableHead>ID externo</TableHead><TableHead>Cliente</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Tenant</TableHead><TableHead>ID externo</TableHead><TableHead>Cliente</TableHead><TableHead></TableHead></TableRow></TableHeader>
             <TableBody>
               {r.tenants.map((t) => (
                 <TableRow key={t.id}>
                   <TableCell>{t.displayName}</TableCell>
                   <TableCell className="font-mono text-xs">{t.externalId}</TableCell>
                   <TableCell>{t.clientId ?? '—'}</TableCell>
+                  <TableCell>
+                    <DeleteConfirmDialog
+                      trigger={
+                        <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50">
+                          Excluir
+                        </Button>
+                      }
+                      title="Excluir tenant"
+                      confirmName={t.displayName}
+                      inputLabel="Digite o nome do tenant para confirmar"
+                      description={`Tenant: ${t.displayName}\nID externo: ${t.externalId}\n\nIsto vai apagar este tenant permanentemente.`}
+                      endpoint={`/api/tenants/${t.id}`}
+                    />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

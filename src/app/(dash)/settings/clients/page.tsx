@@ -3,7 +3,8 @@ import { PageHeader } from '@/ui/components/page-header';
 import { Input } from '@/ui/components/input';
 import { Button } from '@/ui/components/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
-import { createClient, deleteClient } from './actions';
+import { createClient } from './actions';
+import { DeleteConfirmDialog } from '@/ui/components/delete-confirm-dialog';
 
 export default async function ClientsPage() {
   const clients = await prisma.client.findMany({ orderBy: { name: 'asc' } });
@@ -46,10 +47,18 @@ export default async function ClientsPage() {
                 <TableCell className="font-medium text-zinc-900">{c.name}</TableCell>
                 <TableCell className="text-zinc-500">{c.createdAt.toISOString().slice(0, 10)}</TableCell>
                 <TableCell>
-                  <form action={deleteClient}>
-                    <input type="hidden" name="id" value={c.id} />
-                    <Button type="submit" variant="outline" size="sm">Excluir</Button>
-                  </form>
+                  <DeleteConfirmDialog
+                    trigger={
+                      <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50 border-red-200">
+                        Excluir
+                      </Button>
+                    }
+                    title="Excluir cliente"
+                    confirmName={c.name}
+                    inputLabel="Digite o nome do cliente para confirmar"
+                    description={`Cliente: ${c.name}\n\nIsto vai apagar o cliente permanentemente. Recursos associados perderão a referência a este cliente.`}
+                    endpoint={`/api/clients/${c.id}`}
+                  />
                 </TableCell>
               </TableRow>
             ))}
