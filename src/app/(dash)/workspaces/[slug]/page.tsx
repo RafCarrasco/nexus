@@ -5,7 +5,7 @@ import { StatCard } from '@/ui/components/stat-card';
 import { Badge } from '@/ui/components/badge';
 import { Button } from '@/ui/components/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
-import { formatMoney } from '@/lib/money';
+import { CostDisplay } from '@/ui/components/cost-display';
 import { avatarColor, initial } from '@/lib/avatar';
 import { RunNow } from '@/app/(dash)/connections/run-now';
 import { DeleteConfirmDialog } from '@/ui/components/delete-confirm-dialog';
@@ -43,6 +43,7 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
   );
   const cost30d = resources.reduce((s, r) => s + r.costSnapshots.reduce((ss, x) => ss + Number(x.amount), 0), 0);
   const currency = resources.flatMap((r) => r.costSnapshots)[0]?.currency ?? 'USD';
+  const noCostData = resources.flatMap((r) => r.costSnapshots).length === 0;
   const openInc = resources.reduce((s, r) => s + r._count.incidents, 0);
 
   const incidents = await prisma.incident.findMany({
@@ -86,7 +87,7 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
         <StatCard label="Conexões" value={w.connections.length} />
         <StatCard label="Recursos" value={resources.length} />
         <StatCard label="Incidentes abertos" value={openInc} href={`/workspaces/${w.slug}#incidents`} accent={openInc > 0 ? 'danger' : 'default'} />
-        <StatCard label="Custo 30 d" value={formatMoney(cost30d, currency)} />
+        <StatCard label="Custo 30 d" value={<CostDisplay amount={cost30d} currency={currency} notConfigured={noCostData} size="lg" />} />
       </div>
 
       {/* Conexões section — one expandable card per connection */}

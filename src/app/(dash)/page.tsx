@@ -5,6 +5,7 @@ import { StatCard } from '@/ui/components/stat-card';
 import { WorkspaceCard } from '@/ui/components/workspace-card';
 import { Button } from '@/ui/components/button';
 import { formatMoney } from '@/lib/money';
+import { CostDisplay } from '@/ui/components/cost-display';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,7 @@ export default async function OverviewPage() {
 
   const totalCost = costRows.reduce((s, r) => s + Number(r.amount), 0);
   const currency = costRows[0]?.currency ?? 'USD';
+  const noCostData = costRows.length === 0;
 
   // Build sparkline: daily cost totals for last 30 days
   const dailyMap = new Map<string, number>();
@@ -74,7 +76,7 @@ export default async function OverviewPage() {
         />
         <StatCard
           label="Custo (30 d)"
-          value={formatMoney(totalCost, currency)}
+          value={<CostDisplay amount={totalCost} currency={currency} notConfigured={noCostData} size="lg" />}
           trend={costTrend.length > 1 ? costTrend : undefined}
         />
       </div>
@@ -104,6 +106,7 @@ export default async function OverviewPage() {
             );
             const wOpenInc = wResources.reduce((s, r) => s + r._count.incidents, 0);
             const wCurrency = wResources[0]?.costSnapshots[0]?.currency ?? 'USD';
+            const wNoCostData = wResources.flatMap((r) => r.costSnapshots).length === 0;
             return (
               <WorkspaceCard
                 key={w.id}
@@ -112,6 +115,7 @@ export default async function OverviewPage() {
                 openIncidents={wOpenInc}
                 cost30d={wCost}
                 currency={wCurrency}
+                notConfigured={wNoCostData}
               />
             );
           })}

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ChevronRight, AlertTriangle } from 'lucide-react';
 import { avatarColor, initial } from '@/lib/avatar';
-import { formatMoney } from '@/lib/money';
+import { CostDisplay } from '@/ui/components/cost-display';
 
 type Props = {
   workspace: { id: string; slug: string; name: string; description: string | null };
@@ -9,9 +9,10 @@ type Props = {
   openIncidents: number;
   cost30d: number;
   currency?: string;
+  notConfigured?: boolean;
 };
 
-export function WorkspaceCard({ workspace, resourceCount, openIncidents, cost30d, currency = 'USD' }: Props) {
+export function WorkspaceCard({ workspace, resourceCount, openIncidents, cost30d, currency = 'USD', notConfigured }: Props) {
   return (
     <Link
       href={`/workspaces/${workspace.slug}` as never}
@@ -48,7 +49,9 @@ export function WorkspaceCard({ workspace, resourceCount, openIncidents, cost30d
         </div>
         <div className="rounded-lg bg-zinc-50 py-2">
           <div className="text-xs text-zinc-500">Custo 30d</div>
-          <div className="text-sm font-semibold text-zinc-900">{formatMoney(cost30d, currency)}</div>
+          <div className="text-sm font-semibold text-zinc-900">
+            <CostDisplay amount={cost30d} currency={currency} notConfigured={notConfigured} size="sm" />
+          </div>
         </div>
       </div>
     </Link>

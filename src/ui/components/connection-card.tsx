@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { ChevronDown, AlertCircle, CheckCircle2, ExternalLink } from 'lucide-react';
 import { Badge } from '@/ui/components/badge';
-import { formatMoney } from '@/lib/money';
+import { CostDisplay } from '@/ui/components/cost-display';
 
 type Resource = {
   id: string;
@@ -41,6 +41,7 @@ export function ConnectionCard({ connection, trigger }: Props) {
     0,
   );
   const currency = connection.resources.flatMap((r) => r.costSnapshots)[0]?.currency ?? 'USD';
+  const noCostData = connection.resources.flatMap((r) => r.costSnapshots).length === 0;
 
   return (
     <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm open:shadow-md transition" open>
@@ -86,7 +87,9 @@ export function ConnectionCard({ connection, trigger }: Props) {
             </div>
             <div className="text-right">
               <div className="text-xs text-zinc-500">Custo 30d</div>
-              <div className="text-sm font-semibold text-zinc-900">{formatMoney(totalCost, currency)}</div>
+              <div className="text-sm font-semibold text-zinc-900">
+                <CostDisplay amount={totalCost} currency={currency} notConfigured={noCostData} size="sm" />
+              </div>
             </div>
             {trigger}
           </div>

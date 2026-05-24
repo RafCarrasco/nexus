@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import { Nav } from '@/ui/components/nav';
 import { Breadcrumb } from '@/ui/components/breadcrumb';
 import { auth, signOut } from '@/auth/config';
@@ -33,7 +34,13 @@ export default async function DashLayout({ children }: { children: ReactNode }) 
 
         {/* User footer */}
         <div className="mt-auto pt-4 border-t border-zinc-100 px-3">
-          <div className="text-xs text-zinc-500 truncate mb-2">{email}</div>
+          <div className="text-xs text-zinc-500 truncate mb-1">{email}</div>
+          <Link
+            href={'/docs/cost-tracking' as never}
+            className="text-xs text-violet-600 hover:underline block mb-2"
+          >
+            Sobre rastreamento de custo
+          </Link>
           <form
             action={async () => {
               'use server';
