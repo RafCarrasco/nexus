@@ -103,3 +103,25 @@ Assim que:
 2. O service account do Nexus tiver `Monitoring Viewer` no projeto Firebase (já está configurado),
 
 o Nexus passa a coletar os custos automaticamente, sem nenhuma intervenção adicional. O "não configurado" some e o custo real aparece.
+
+---
+
+## Suporte de custo por provedor
+
+| Provedor | Custo automático | Status |
+|----------|------------------|--------|
+| **Firebase** | ⚠️ Sim, via Cloud Monitoring | Precisa habilitar billing export → Monitoring (1x) + role `Monitoring Viewer` no SA |
+| **Supabase** | ✅ Sim, via Management API | Funciona com PAT (`token`) + `orgSlug` |
+| **Docker** | ❌ Não | Containers não têm custo direto — fica como recurso do VPS (custo fixo) |
+| **Vercel** | ❌ Não | API pública não expõe custo diário. Bandwidth/invocações sim, futuramente derivamos |
+| **GitHub** | ❌ Não | Actions billing exige escopo admin + Billing API; fora do MVP |
+| **Cloudflare** | ❌ Não | Sem endpoint público simples; futuramente via Billing API |
+| **Azure** | ⚠️ Possível | Cost Management API existe mas auth + setup separado; TODO |
+
+Provedores marcados ❌ mostram **"não disponível"** no card de custo (cinza, sem link). Provedores ⚠️ mostram **"não configurado"** com link pra esta página enquanto setup não foi feito. ✅ rastreia normalmente.
+
+Pra esses casos sem custo automático, os caminhos no roadmap:
+
+- **Budget manual por workspace** — você digita gasto esperado/mês, app rastreia
+- **Importação CSV** — baixa fatura do console + sobe no Nexus
+- **Estimativa via usage × preço público** — futuramente derivamos do número de invocações × tabela de preço

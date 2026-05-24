@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { ChevronDown, AlertCircle, CheckCircle2, ExternalLink } from 'lucide-react';
 import { Badge } from '@/ui/components/badge';
-import { CostDisplay } from '@/ui/components/cost-display';
+import { CostDisplay, providerSupportsCost } from '@/ui/components/cost-display';
 import { StatusPill } from '@/ui/components/status-pill';
 import { aggregateStatus } from '@/lib/status';
 
@@ -94,7 +94,13 @@ export function ConnectionCard({ connection, trigger }: Props) {
             <div className="text-right">
               <div className="text-xs text-zinc-500">Custo 30d</div>
               <div className="text-sm font-semibold text-zinc-900">
-                <CostDisplay amount={totalCost} currency={currency} notConfigured={noCostData} size="sm" />
+                <CostDisplay
+                  amount={totalCost}
+                  currency={currency}
+                  notSupported={!providerSupportsCost(connection.type) && noCostData}
+                  notConfigured={providerSupportsCost(connection.type) && noCostData}
+                  size="sm"
+                />
               </div>
             </div>
             {trigger}
