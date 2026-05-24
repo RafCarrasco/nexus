@@ -1,5 +1,49 @@
 # Rastreamento de custo no Nexus
 
+## BigQuery export (recomendado)
+
+O BigQuery export é o caminho oficial recomendado pelo Google para obter dados de custo precisos com breakdown por serviço.
+
+### Por que é melhor
+
+- **Oficial e preciso**: dados diretos do billing stream do Google, sem depender de métricas agregadas do Cloud Monitoring.
+- **Breakdown por serviço**: Firestore, Cloud Functions, Hosting, Storage — cada linha separada no dashboard.
+- **Mesma latência**: dados aparecem em até 24h, igual ao Cloud Monitoring.
+- **Gratuito no caso típico**: free tier do BigQuery cobre 10 GB de storage e 1 TB de queries/mês. Para PG-Consulting o custo real fica em ~R$ 0.
+
+### Setup passo a passo
+
+1. Acesse o [Cloud Billing Console](https://console.cloud.google.com/billing) e selecione a conta de billing do projeto.
+2. No menu esquerdo, clique em **Billing export** → **BigQuery export** → **Edit settings**.
+3. Escolha (ou crie) um dataset no BigQuery — sugestão: `billing_export` no mesmo projeto Firebase.
+4. Habilite **Standard usage cost data** (e opcionalmente **Pricing data**). Salve.
+5. Adicione os papéis ao service account do Nexus:
+   ```bash
+   gcloud projects add-iam-policy-binding SEU_PROJETO \
+     --member="serviceAccount:SEU_SA@SEU_PROJETO.iam.gserviceaccount.com" \
+     --role="roles/bigquery.dataViewer"
+
+   gcloud projects add-iam-policy-binding SEU_PROJETO \
+     --member="serviceAccount:SEU_SA@SEU_PROJETO.iam.gserviceaccount.com" \
+     --role="roles/bigquery.jobUser"
+   ```
+   (`bigquery.dataViewer` permite ler a tabela de export; `bigquery.jobUser` permite rodar queries.)
+6. No Nexus, edite a Connection Firebase → Step 4 → marque **Usar BigQuery export** → preencha `bigQueryDataset` (ex.: `billing_export`) e `bigQueryProject` (padrão: mesmo projeto Firebase).
+
+### Latência e comportamento
+
+- Dados aparecem em até 24h após habilitar o export.
+- Snapshots no Nexus são coletados pelo cron de 6h — após o dado aparecer no BigQuery, o próximo ciclo coleta e armazena com breakdown por serviço.
+- O campo `breakdown` fica disponível no banco (coluna `CostSnapshot.breakdown`, tipo JSON).
+
+---
+
+## Cloud Monitoring (fallback)
+
+Usado automaticamente quando `bigQueryDataset` não está configurado na Connection. Comportamento atual para conexões existentes — retrocompatível.
+
+---
+
 ## O que é
 
 O Nexus possui uma seção dedicada ao rastreamento de custo de cada Connection e Workspace. Com ela você consegue:

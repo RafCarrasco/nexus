@@ -60,13 +60,21 @@
 
 ---
 
+## Concluído recentemente
+
+| Feature | Status |
+|---------|--------|
+| **Cost: BigQuery export integration** | ✅ DONE — Firebase connections can opt into BigQuery billing export for per-service cost breakdown. Set `bigQueryDataset` (+ optional `bigQueryProject`) in the connection config. Falls back to Cloud Monitoring when not configured. |
+
+---
+
 ## Provedores
 
 ### Suportados agora
 
 | Provedor | Recursos | Custo | Atividade | Health |
 |----------|----------|-------|-----------|--------|
-| **firebase** | Projects, Hosting sites, Cloud Functions | Cloud Monitoring | — | Hosting URL HEAD |
+| **firebase** | Projects, Hosting sites, Cloud Functions | BigQuery export (preferred) / Cloud Monitoring (fallback) | — | Hosting URL HEAD |
 | **supabase** | Projects | Billing API | Database usage | `/health` endpoint |
 | **docker** | Containers | — | `StartedAt` | Container state + health check |
 | **vercel** | Projects | — (API pública não expõe custo) | Last deployment | `productionUrl` HEAD |

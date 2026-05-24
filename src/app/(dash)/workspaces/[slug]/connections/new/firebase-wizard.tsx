@@ -36,6 +36,9 @@ export function FirebaseWizard({ workspaceSlug, workspaceId, workspaceName }: Pr
   const [sa, setSa] = useState<ServiceAccount | null>(null);
   const [name, setName] = useState('');
   const [billingId, setBillingId] = useState('');
+  const [useBigQuery, setUseBigQuery] = useState(false);
+  const [bqProject, setBqProject] = useState('');
+  const [bqDataset, setBqDataset] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
@@ -74,10 +77,21 @@ export function FirebaseWizard({ workspaceSlug, workspaceId, workspaceName }: Pr
 
   function copyIamCommand() {
     if (!sa) return;
-    const cmd =
-      `gcloud projects add-iam-policy-binding ${sa.project_id} \\\n` +
-      `  --member="serviceAccount:${sa.client_email}" \\\n` +
-      `  --role="roles/monitoring.viewer"`;
+    let cmd: string;
+    if (useBigQuery) {
+      cmd =
+        `gcloud projects add-iam-policy-binding ${sa.project_id} \\\n` +
+        `  --member="serviceAccount:${sa.client_email}" \\\n` +
+        `  --role="roles/bigquery.dataViewer"\n\n` +
+        `gcloud projects add-iam-policy-binding ${sa.project_id} \\\n` +
+        `  --member="serviceAccount:${sa.client_email}" \\\n` +
+        `  --role="roles/bigquery.jobUser"`;
+    } else {
+      cmd =
+        `gcloud projects add-iam-policy-binding ${sa.project_id} \\\n` +
+        `  --member="serviceAccount:${sa.client_email}" \\\n` +
+        `  --role="roles/monitoring.viewer"`;
+    }
     void navigator.clipboard.writeText(cmd);
     setIamCopied(true);
     setTimeout(() => setIamCopied(false), 2000);
@@ -99,6 +113,8 @@ export function FirebaseWizard({ workspaceSlug, workspaceId, workspaceName }: Pr
           config: {
             serviceAccount: sa,
             ...(billingId.trim() ? { billingAccountId: billingId.trim() } : {}),
+            ...(useBigQuery && bqDataset.trim() ? { bigQueryDataset: bqDataset.trim() } : {}),
+            ...(useBigQuery && bqProject.trim() ? { bigQueryProject: bqProject.trim() } : {}),
           },
         }),
       });
@@ -428,38 +444,87 @@ export function FirebaseWizard({ workspaceSlug, workspaceId, workspaceName }: Pr
                 <span className="text-zinc-400 text-xs group-open:hidden">▸ expandir</span>
                 <span className="text-zinc-400 text-xs hidden group-open:inline">▾ recolher</span>
               </summary>
-              <div className="px-4 pb-4 pt-1 space-y-3 text-sm text-zinc-700 border-t border-zinc-200">
-                <p>
-                  Pra custo aparecer no dashboard, o service account precisa do papel{' '}
-                  <code className="bg-white text-xs px-1.5 py-0.5 rounded border border-zinc-200 font-mono">
-                    Monitoring Viewer
-                  </code>{' '}
-                  no projeto.
-                </p>
-                <p>Rode esse comando no Cloud Shell ou na sua máquina:</p>
-                <div className="relative">
-                  <pre className="bg-zinc-900 text-zinc-100 text-xs rounded-md p-3 overflow-x-auto whitespace-pre-wrap break-all">
-                    {`gcloud projects add-iam-policy-binding ${sa.project_id} \\
-  --member="serviceAccount:${sa.client_email}" \\
-  --role="roles/monitoring.viewer"`}
-                  </pre>
-                  <button
-                    onClick={copyIamCommand}
-                    className="absolute top-2 right-2 text-zinc-400 hover:text-white transition-colors flex items-center gap-1"
-                    title="Copiar comando"
-                  >
-                    {iamCopied ? (
-                      <span className="text-xs text-green-400">copiado!</span>
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </button>
+              <div className="px-4 pb-4 pt-3 space-y-4 text-sm text-zinc-700 border-t border-zinc-200">
+                {/* BigQuery toggle */}
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useBigQuery}
+                    onChange={(e) => setUseBigQuery(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-violet-600"
+                  />
+                  <div>
+                    <span className="font-medium text-zinc-800">Usar BigQuery export (recomendado)</span>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      Mais preciso, breakdown por serviço (Firestore, Functions, Hosting…). Requer billing export habilitado no BigQuery.
+                    </p>
+                  </div>
+                </label>
+
+                {useBigQuery && (
+                  <div className="ml-7 space-y-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="bq-project">BigQuery Project</Label>
+                      <Input
+                        id="bq-project"
+                        value={bqProject}
+                        onChange={(e) => setBqProject(e.target.value)}
+                        placeholder={sa.project_id}
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-xs text-zinc-500">Padrão: mesmo do projeto Firebase.</p>
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="bq-dataset">BigQuery Dataset</Label>
+                      <Input
+                        id="bq-dataset"
+                        value={bqDataset}
+                        onChange={(e) => setBqDataset(e.target.value)}
+                        placeholder="billing_export"
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-xs text-zinc-500">Nome do dataset onde o billing export foi configurado.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* IAM command */}
+                <div className="space-y-2">
+                  <p>
+                    {useBigQuery
+                      ? 'Adicione os papéis abaixo ao service account:'
+                      : <>O service account precisa do papel{' '}
+                          <code className="bg-white text-xs px-1.5 py-0.5 rounded border border-zinc-200 font-mono">
+                            Monitoring Viewer
+                          </code>{' '}no projeto.</>
+                    }
+                  </p>
+                  <div className="relative">
+                    <pre className="bg-zinc-900 text-zinc-100 text-xs rounded-md p-3 overflow-x-auto whitespace-pre-wrap break-all">
+                      {useBigQuery
+                        ? `gcloud projects add-iam-policy-binding ${sa.project_id} \\\n  --member="serviceAccount:${sa.client_email}" \\\n  --role="roles/bigquery.dataViewer"\n\ngcloud projects add-iam-policy-binding ${sa.project_id} \\\n  --member="serviceAccount:${sa.client_email}" \\\n  --role="roles/bigquery.jobUser"`
+                        : `gcloud projects add-iam-policy-binding ${sa.project_id} \\\n  --member="serviceAccount:${sa.client_email}" \\\n  --role="roles/monitoring.viewer"`
+                      }
+                    </pre>
+                    <button
+                      onClick={copyIamCommand}
+                      className="absolute top-2 right-2 text-zinc-400 hover:text-white transition-colors flex items-center gap-1"
+                      title="Copiar comando"
+                    >
+                      {iamCopied ? (
+                        <span className="text-xs text-green-400">copiado!</span>
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
+
                 <p className="text-xs text-zinc-500">
-                  Você também precisa habilitar o billing export → Cloud Monitoring na conta de
-                  billing.{' '}
-                  {/* TODO: adicionar link pra /docs/getting-started quando a página existir */}
-                  <span className="text-violet-500">Saiba mais (em breve)</span>.
+                  {useBigQuery
+                    ? 'Dados aparecem em até 24h após habilitar o export. Setup no Cloud Billing Console → Billing export → BigQuery export.'
+                    : 'Você também precisa habilitar o billing export → Cloud Monitoring na conta de billing.'
+                  }
                 </p>
               </div>
             </details>
@@ -516,6 +581,18 @@ export function FirebaseWizard({ workspaceSlug, workspaceId, workspaceName }: Pr
                   <dt className="text-zinc-500 shrink-0">Billing ID</dt>
                   <dd className="text-zinc-900 font-mono text-right">{billingId}</dd>
                 </div>
+              )}
+              {useBigQuery && bqDataset && (
+                <>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-zinc-500 shrink-0">BigQuery Dataset</dt>
+                    <dd className="text-zinc-900 font-mono text-right">{bqDataset}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-zinc-500 shrink-0">BigQuery Project</dt>
+                    <dd className="text-zinc-900 font-mono text-right">{bqProject || sa.project_id}</dd>
+                  </div>
+                </>
               )}
             </dl>
 

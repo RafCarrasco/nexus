@@ -176,4 +176,57 @@ describe('FirebaseProvider', () => {
     expect(t).toEqual([]);
     expect(listTenants).not.toHaveBeenCalled();
   });
+
+  it('uses BigQuery when bigQueryDataset is set', async () => {
+    const bqConn = {
+      ...conn,
+      config: {
+        serviceAccount: { project_id: 'demo-proj', client_email: 'x@y', private_key: 'k' },
+        billingAccountId: 'ABC123-DEF456-GHI789',
+        bigQueryDataset: 'billing_export',
+        bigQueryProject: 'demo-proj',
+      },
+    };
+    // fetch: BigQuery queries endpoint returns rows
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        rows: [
+          { f: [{ v: 'Cloud Firestore' }, { v: '3.50' }, { v: 'USD' }] },
+          { f: [{ v: 'Cloud Functions' }, { v: '1.25' }, { v: 'USD' }] },
+        ],
+      }),
+    });
+    const cost = await FirebaseProvider.getDailyCost(bqConn, 'project:demo-proj', new Date('2026-05-22T00:00:00Z'));
+    expect(cost).not.toBeNull();
+    expect(cost!.amount).toBeCloseTo(4.75);
+    expect(cost!.currency).toBe('USD');
+    expect(cost!.source).toBe('bigquery');
+    expect((cost as { breakdown?: unknown[] }).breakdown).toHaveLength(2);
+    expect((cost as { breakdown?: Array<{ service: string; amount: number }> }).breakdown![0]).toMatchObject({
+      service: 'Cloud Firestore',
+      amount: 3.50,
+    });
+    // Should have called BigQuery endpoint, not Monitoring
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls[0][0]).toContain('bigquery.googleapis.com');
+  });
+
+  it('falls back to Monitoring when bigQueryDataset is missing', async () => {
+    // conn has no bigQueryDataset — should hit Monitoring
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        timeSeries: [
+          {
+            metric: { labels: { currency: 'USD' } },
+            points: [{ value: { doubleValue: 2.00 } }],
+          },
+        ],
+      }),
+    });
+    const cost = await FirebaseProvider.getDailyCost(conn, 'project:demo-proj', new Date('2026-05-22T00:00:00Z'));
+    expect(cost).toEqual({ amount: 2.00, currency: 'USD', source: 'cloud-monitoring' });
+    expect(fetchMock.mock.calls[0][0]).toContain('monitoring.googleapis.com');
+  });
 });

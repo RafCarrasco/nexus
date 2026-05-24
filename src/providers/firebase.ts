@@ -21,6 +21,10 @@ function projectId(conn: ConnectionView): string {
   return (conn.config.serviceAccount as SAJson).project_id;
 }
 
+function billingAccount(conn: ConnectionView): string | undefined {
+  return conn.config.billingAccountId as string | undefined;
+}
+
 
 async function googleAccessToken(
   conn: ConnectionView,
@@ -128,44 +132,28 @@ export const FirebaseProvider: Provider = {
     return [projectResource, ...hostingResources, ...functionResources];
   },
 
-  async getDailyCost(conn, _externalId, date): Promise<CostDTO | null> {
-    // Only project resource carries cost via Cloud Monitoring
-    if (_externalId && !_externalId.startsWith('project:')) return null;
-    try {
-      const token = await googleAccessToken(conn, ['https://www.googleapis.com/auth/monitoring.read']);
-      const project = projectId(conn);
-      const start = new Date(date);
-      start.setUTCHours(0, 0, 0, 0);
-      const end = new Date(date);
-      end.setUTCHours(23, 59, 59, 999);
-      const params = new URLSearchParams({
-        filter: `metric.type="billing.googleapis.com/billing/total_cost" AND resource.labels.project_id="${project}"`,
-        'interval.startTime': start.toISOString(),
-        'interval.endTime': end.toISOString(),
-        'aggregation.alignmentPeriod': '86400s',
-        'aggregation.perSeriesAligner': 'ALIGN_SUM',
+  async getDailyCost(conn, externalId, date): Promise<CostDTO | null> {
+    // Cost only makes sense for the project resource
+    if (externalId && !externalId.startsWith('project:')) return null;
+
+    // Prefer BigQuery if configured
+    const bqDataset = conn.config.bigQueryDataset as string | undefined;
+    const bqProject = (conn.config.bigQueryProject as string | undefined) ?? projectId(conn);
+    const billing = billingAccount(conn);
+
+    if (bqDataset && billing) {
+      return getDailyCostViaBigQuery({
+        conn,
+        projectId: projectId(conn),
+        bqProject,
+        bqDataset,
+        billingAccountId: billing,
+        date,
       });
-      const url = `https://monitoring.googleapis.com/v3/projects/${project}/timeSeries?${params}`;
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) return null;
-      const json = (await res.json()) as {
-        timeSeries?: Array<{
-          points?: Array<{ value?: { doubleValue?: number } }>;
-          metric?: { labels?: { currency?: string } };
-        }>;
-      };
-      if (!json.timeSeries?.length) return null;
-      let total = 0;
-      let currency = 'USD';
-      for (const ts of json.timeSeries) {
-        currency = ts.metric?.labels?.currency ?? currency;
-        for (const p of ts.points ?? []) total += p.value?.doubleValue ?? 0;
-      }
-      if (total === 0) return null;
-      return { amount: total, currency, source: 'cloud-monitoring' };
-    } catch {
-      return null;
     }
+
+    // Fallback: Cloud Monitoring
+    return getDailyCostViaMonitoring({ conn, projectId: projectId(conn), date });
   },
 
   async getLastActivity(_conn, _externalId): Promise<Date | null> {
@@ -224,6 +212,112 @@ export const FirebaseProvider: Provider = {
     await getAuth(app).listUsers(1);
   },
 };
+
+// ── Cost helpers ──────────────────────────────────────────────────────────────
+
+async function getDailyCostViaMonitoring(args: {
+  conn: ConnectionView;
+  projectId: string;
+  date: Date;
+}): Promise<CostDTO | null> {
+  const { conn, projectId, date } = args;
+  try {
+    const token = await googleAccessToken(conn, ['https://www.googleapis.com/auth/monitoring.read']);
+    const start = new Date(date);
+    start.setUTCHours(0, 0, 0, 0);
+    const end = new Date(date);
+    end.setUTCHours(23, 59, 59, 999);
+    const params = new URLSearchParams({
+      filter: `metric.type="billing.googleapis.com/billing/total_cost" AND resource.labels.project_id="${projectId}"`,
+      'interval.startTime': start.toISOString(),
+      'interval.endTime': end.toISOString(),
+      'aggregation.alignmentPeriod': '86400s',
+      'aggregation.perSeriesAligner': 'ALIGN_SUM',
+    });
+    const url = `https://monitoring.googleapis.com/v3/projects/${projectId}/timeSeries?${params}`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      timeSeries?: Array<{
+        points?: Array<{ value?: { doubleValue?: number } }>;
+        metric?: { labels?: { currency?: string } };
+      }>;
+    };
+    if (!json.timeSeries?.length) return null;
+    let total = 0;
+    let currency = 'USD';
+    for (const ts of json.timeSeries) {
+      currency = ts.metric?.labels?.currency ?? currency;
+      for (const p of ts.points ?? []) total += p.value?.doubleValue ?? 0;
+    }
+    if (total === 0) return null;
+    return { amount: total, currency, source: 'cloud-monitoring' };
+  } catch {
+    return null;
+  }
+}
+
+async function getDailyCostViaBigQuery(args: {
+  conn: ConnectionView;
+  projectId: string;
+  bqProject: string;
+  bqDataset: string;
+  billingAccountId: string;
+  date: Date;
+}): Promise<(CostDTO & { breakdown?: Array<{ service: string; amount: number }> }) | null> {
+  const { conn, projectId, bqProject, bqDataset, billingAccountId, date } = args;
+  try {
+    const token = await googleAccessToken(conn, ['https://www.googleapis.com/auth/bigquery.readonly']);
+    const tableName = `gcp_billing_export_v1_${billingAccountId.replace(/-/g, '_')}`;
+    const dayIso = date.toISOString().slice(0, 10);
+
+    const sql = `
+      SELECT
+        service.description AS service,
+        SUM(cost) AS cost,
+        ANY_VALUE(currency) AS currency
+      FROM \`${bqProject}.${bqDataset}.${tableName}\`
+      WHERE DATE(usage_start_time) = DATE("${dayIso}")
+        AND project.id = "${projectId}"
+      GROUP BY service
+      ORDER BY cost DESC
+    `;
+
+    const url = `https://bigquery.googleapis.com/bigquery/v2/projects/${bqProject}/queries`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        query: sql,
+        useLegacySql: false,
+        timeoutMs: 30000,
+        location: 'US',
+      }),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      rows?: Array<{ f: Array<{ v: string }> }>;
+      schema?: { fields: Array<{ name: string }> };
+    };
+    if (!json.rows?.length) return null;
+
+    // Row format: [{v: service}, {v: cost}, {v: currency}]
+    const breakdown: Array<{ service: string; amount: number }> = [];
+    let total = 0;
+    let currency = 'USD';
+    for (const r of json.rows) {
+      const service = r.f[0]?.v ?? 'unknown';
+      const amount = Number(r.f[1]?.v ?? 0);
+      currency = r.f[2]?.v ?? currency;
+      breakdown.push({ service, amount });
+      total += amount;
+    }
+    if (total === 0) return null;
+    return { amount: total, currency, source: 'bigquery', breakdown };
+  } catch {
+    return null;
+  }
+}
 
 // dispose helper for tests
 export async function disposeFirebaseApp(conn: ConnectionView): Promise<void> {

@@ -71,6 +71,7 @@ model CostSnapshot {
   amount     Decimal  @db.Decimal(12, 4)
   currency   String   @default("USD")
   source     String
+  breakdown  Json?
   resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
 
   @@unique([resourceId, date, source])
