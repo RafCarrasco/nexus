@@ -102,11 +102,31 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
           </div>
         </div>
         {w.connections.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-6 py-8 text-center text-sm text-zinc-500">
-            Nenhuma conexão ainda.{' '}
-            <Link href={`/workspaces/${slug}/connections/new` as never} className="text-violet-600 hover:underline">
-              Adicionar conexão
-            </Link>
+          <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-8 py-14 flex flex-col items-center gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100 text-violet-600 text-3xl select-none">
+              🔌
+            </div>
+            <div className="text-center space-y-1">
+              <p className="font-semibold text-zinc-800 text-base">Nenhuma conexão ainda</p>
+              <p className="text-sm text-zinc-500 max-w-xs">
+                Adicione a primeira conexão pra começar a descobrir recursos automaticamente.
+              </p>
+            </div>
+            <Button asChild className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl px-6">
+              <Link href={`/workspaces/${slug}/connections/new` as never}>
+                Conectar Firebase
+              </Link>
+            </Button>
+            <p className="text-xs text-zinc-400">
+              ou outros:{' '}
+              <Link href={`/workspaces/${slug}/connections/new?type=supabase` as never} className="hover:text-zinc-600 underline underline-offset-2">
+                Supabase
+              </Link>{' '}
+              ·{' '}
+              <Link href={`/workspaces/${slug}/connections/new?type=docker` as never} className="hover:text-zinc-600 underline underline-offset-2">
+                Docker
+              </Link>
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
