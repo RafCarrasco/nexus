@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { CheckCircle2 } from 'lucide-react';
 import { prisma } from '@/db/client';
 import { PageHeader } from '@/ui/components/page-header';
 import { Badge } from '@/ui/components/badge';
@@ -17,6 +18,21 @@ export default async function IncidentsPage() {
     take: 50,
     include: { resource: true },
   });
+  if (open.length === 0 && recent.length === 0) {
+    return (
+      <div className="space-y-8">
+        <PageHeader title="Incidentes" />
+        <div className="rounded-2xl border border-zinc-200 bg-white p-12 text-center space-y-4 shadow-sm">
+          <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
+          <h3 className="text-base font-semibold text-zinc-900">Tudo tranquilo por aqui</h3>
+          <p className="text-sm text-zinc-500 max-w-md mx-auto">
+            Nenhum incidente aberto ou resolvido. Quando algo precisar de atenção, vai aparecer aqui.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <PageHeader

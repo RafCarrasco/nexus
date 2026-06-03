@@ -1,3 +1,5 @@
+import Link from 'next/link';
+import { Boxes, Users } from 'lucide-react';
 import { prisma } from '@/db/client';
 import { PageHeader } from '@/ui/components/page-header';
 import { Input } from '@/ui/components/input';
@@ -25,7 +27,36 @@ export default async function AllocationsPage() {
     <div className="space-y-8">
       <PageHeader title="Alocações por cliente" />
 
+      {/* Prompt: no clients */}
+      {clients.length === 0 && (
+        <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-center space-y-3 shadow-sm">
+          <Users className="h-10 w-10 text-zinc-300 mx-auto" />
+          <h3 className="text-base font-semibold text-zinc-900">Nenhum cliente cadastrado</h3>
+          <p className="text-sm text-zinc-500 max-w-md mx-auto">
+            Para alocar recursos, primeiro cadastre ao menos um cliente.
+          </p>
+          <Button asChild className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl">
+            <Link href="/settings/clients">Ir para Clientes</Link>
+          </Button>
+        </div>
+      )}
+
+      {/* Prompt: no resources */}
+      {resources.length === 0 && (
+        <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-center space-y-3 shadow-sm">
+          <Boxes className="h-10 w-10 text-zinc-300 mx-auto" />
+          <h3 className="text-base font-semibold text-zinc-900">Nenhum recurso disponível</h3>
+          <p className="text-sm text-zinc-500 max-w-md mx-auto">
+            Adicione conexões nos seus aplicativos para descobrir recursos.
+          </p>
+          <Button asChild className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl">
+            <Link href="/workspaces">Ir para Aplicativos</Link>
+          </Button>
+        </div>
+      )}
+
       {/* Resources section */}
+      {resources.length > 0 && clients.length > 0 && (
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-zinc-900">Recursos</h2>
         <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
@@ -64,8 +95,10 @@ export default async function AllocationsPage() {
           </Table>
         </div>
       </section>
+      )}
 
       {/* Tenants section */}
+      {tenants.length > 0 && clients.length > 0 && (
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-zinc-900">Tenants</h2>
         <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
@@ -102,6 +135,7 @@ export default async function AllocationsPage() {
           </Table>
         </div>
       </section>
+      )}
     </div>
   );
 }

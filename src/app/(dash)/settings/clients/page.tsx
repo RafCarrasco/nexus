@@ -1,3 +1,4 @@
+import { Users } from 'lucide-react';
 import { prisma } from '@/db/client';
 import { PageHeader } from '@/ui/components/page-header';
 import { Input } from '@/ui/components/input';
@@ -37,8 +38,17 @@ export default async function ClientsPage() {
           <TableBody>
             {clients.length === 0 && (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-zinc-400 py-8">
-                  Nenhum cliente ainda.
+                <TableCell colSpan={3} className="py-12">
+                  <div className="flex flex-col items-center gap-3 text-center">
+                    <Users className="h-10 w-10 text-zinc-300" />
+                    <div>
+                      <p className="text-base font-semibold text-zinc-900">Cadastre seus clientes</p>
+                      <p className="text-sm text-zinc-500 max-w-md mt-1">
+                        Clientes permitem alocar recursos e calcular custo por cliente.
+                        Use o formulário acima para adicionar o primeiro.
+                      </p>
+                    </div>
+                  </div>
                 </TableCell>
               </TableRow>
             )}

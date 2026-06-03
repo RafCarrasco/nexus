@@ -1,6 +1,7 @@
 'use client';
 import { useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/ui/components/toast';
 import {
   Dialog,
   DialogContent,
@@ -45,6 +46,7 @@ export function DeleteConfirmDialog({
   onSuccess,
 }: Props) {
   const router = useRouter();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +64,7 @@ export function DeleteConfirmDialog({
       }
       setOpen(false);
       setTyped('');
+      toast(`${title} concluído`, 'success');
       onSuccess?.();
       if (onSuccessRedirect) router.push(onSuccessRedirect as never);
       router.refresh();

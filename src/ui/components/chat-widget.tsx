@@ -93,21 +93,21 @@ export function ChatWidget() {
         </button>
       )}
       {open && (
-        <div className="fixed bottom-6 right-6 w-96 h-[560px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-4rem)] rounded-2xl border border-zinc-200 bg-white shadow-2xl flex flex-col overflow-hidden z-50">
+        <div className="fixed bottom-6 right-6 w-96 h-[560px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-4rem)] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl flex flex-col overflow-hidden z-50">
           {/* Top bar */}
-          <div className="h-12 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between px-4 shrink-0">
-            <div className="text-sm font-semibold">Assistente</div>
+          <div className="h-12 bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 flex items-center justify-between px-4 shrink-0">
+            <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Assistente</div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowConfig(!showConfig)}
-                className="text-zinc-500 hover:text-zinc-900"
+                className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                 aria-label="Configurações"
               >
                 <Settings className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setOpen(false)}
-                className="text-zinc-500 hover:text-zinc-900"
+                className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                 aria-label="Fechar"
               >
                 <X className="h-4 w-4" />
@@ -117,36 +117,36 @@ export function ChatWidget() {
 
           {/* Config form */}
           {showConfig && (
-            <div className="bg-amber-50 border-b border-amber-200 p-3 space-y-2 shrink-0">
+            <div className="bg-amber-50 dark:bg-amber-950 border-b border-amber-200 dark:border-amber-900 p-3 space-y-2 shrink-0">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-amber-900">Provedor</label>
+                <label className="text-xs font-medium text-amber-900 dark:text-amber-200">Provedor</label>
                 <select
                   value={provider}
                   onChange={(e) => setProvider(e.target.value as Provider)}
-                  className="w-full rounded-md border border-amber-200 bg-white px-2 py-1 text-sm"
+                  className="w-full rounded-md border border-amber-200 dark:border-amber-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 px-2 py-1 text-sm"
                 >
                   <option value="anthropic">Anthropic Claude</option>
                   <option value="openai">OpenAI</option>
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-amber-900">Chave de API</label>
+                <label className="text-xs font-medium text-amber-900 dark:text-amber-200">Chave de API</label>
                 <input
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder={provider === 'anthropic' ? 'sk-ant-...' : 'sk-...'}
-                  className="w-full rounded-md border border-amber-200 bg-white px-2 py-1 text-sm"
+                  className="w-full rounded-md border border-amber-200 dark:border-amber-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 px-2 py-1 text-sm"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-amber-900">Modelo (opcional)</label>
+                <label className="text-xs font-medium text-amber-900 dark:text-amber-200">Modelo (opcional)</label>
                 <input
                   type="text"
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
                   placeholder={DEFAULT_MODEL[provider]}
-                  className="w-full rounded-md border border-amber-200 bg-white px-2 py-1 text-sm"
+                  className="w-full rounded-md border border-amber-200 dark:border-amber-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 px-2 py-1 text-sm"
                 />
               </div>
               <button
@@ -155,7 +155,7 @@ export function ChatWidget() {
               >
                 Salvar
               </button>
-              <p className="text-xs text-amber-700">
+              <p className="text-xs text-amber-700 dark:text-amber-300">
                 Sua chave fica apenas neste navegador (localStorage). Nunca é salva no servidor.
               </p>
             </div>
@@ -164,7 +164,7 @@ export function ChatWidget() {
           {/* Messages */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.length === 0 && !showConfig && (
-              <div className="text-sm text-zinc-500 text-center mt-8">
+              <div className="text-sm text-zinc-500 dark:text-zinc-400 text-center mt-8">
                 Olá! Configure sua chave de API e comece a conversar.
               </div>
             )}
@@ -174,7 +174,7 @@ export function ChatWidget() {
                   className={
                     m.role === 'user'
                       ? 'bg-violet-600 text-white rounded-2xl rounded-br-md px-3 py-2 max-w-[80%] text-sm whitespace-pre-wrap'
-                      : 'bg-zinc-100 text-zinc-900 rounded-2xl rounded-bl-md px-3 py-2 max-w-[80%] text-sm whitespace-pre-wrap'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-2xl rounded-bl-md px-3 py-2 max-w-[80%] text-sm whitespace-pre-wrap'
                   }
                 >
                   {m.content}
@@ -185,7 +185,7 @@ export function ChatWidget() {
           </div>
 
           {/* Composer */}
-          <div className="border-t border-zinc-200 p-3 flex items-end gap-2 shrink-0">
+          <div className="border-t border-zinc-200 dark:border-zinc-700 p-3 flex items-end gap-2 shrink-0">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -196,7 +196,7 @@ export function ChatWidget() {
                 }
               }}
               placeholder="Digite sua mensagem…"
-              className="flex-1 resize-none rounded-md border border-zinc-200 px-2 py-1.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 focus:outline-none"
+              className="flex-1 resize-none rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 px-2 py-1.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-900 focus:outline-none"
               rows={1}
               disabled={busy}
             />

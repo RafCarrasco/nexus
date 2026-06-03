@@ -37,16 +37,16 @@ export function Breadcrumb() {
 
   return (
     <nav aria-label="Breadcrumb">
-      <ol className="flex items-center gap-1 text-xs text-zinc-500">
+      <ol className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
         {crumbs.map((crumb, i) => (
           <li key={`${crumb.href}-${i}`} className="flex items-center gap-1">
-            {i > 0 && <ChevronRight className="h-3 w-3 text-zinc-400 shrink-0" />}
+            {i > 0 && <ChevronRight className="h-3 w-3 text-zinc-400 dark:text-zinc-600 shrink-0" />}
             {i < crumbs.length - 1 ? (
-              <Link href={crumb.href as never} className="hover:text-zinc-900 transition-colors">
+              <Link href={crumb.href as never} className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
                 {crumb.label}
               </Link>
             ) : (
-              <span className="text-zinc-900 font-medium">{crumb.label}</span>
+              <span className="text-zinc-900 dark:text-zinc-100 font-medium">{crumb.label}</span>
             )}
           </li>
         ))}

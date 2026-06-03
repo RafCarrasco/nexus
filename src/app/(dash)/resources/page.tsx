@@ -1,7 +1,9 @@
 import Link from 'next/link';
+import { Boxes } from 'lucide-react';
 import { prisma } from '@/db/client';
 import { PageHeader } from '@/ui/components/page-header';
 import { Badge } from '@/ui/components/badge';
+import { Button } from '@/ui/components/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 
 type Search = { client?: string; type?: string; q?: string };
@@ -52,7 +54,22 @@ export default async function ResourcesPage({ searchParams }: { searchParams: Pr
         </button>
       </form>
 
+      {/* Empty state */}
+      {rows.length === 0 && (
+        <div className="rounded-2xl border border-zinc-200 bg-white p-12 text-center space-y-4 shadow-sm">
+          <Boxes className="h-10 w-10 text-zinc-300 mx-auto" />
+          <h3 className="text-base font-semibold text-zinc-900">Nenhum recurso descoberto</h3>
+          <p className="text-sm text-zinc-500 max-w-md mx-auto">
+            Adicione uma conexão num aplicativo para começar a descobrir recursos automaticamente.
+          </p>
+          <Button asChild className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl">
+            <Link href="/workspaces">Ir para Aplicativos</Link>
+          </Button>
+        </div>
+      )}
+
       {/* Table */}
+      {rows.length > 0 && (
       <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
         <Table>
           <TableHeader>
@@ -89,6 +106,7 @@ export default async function ResourcesPage({ searchParams }: { searchParams: Pr
           </TableBody>
         </Table>
       </div>
+      )}
     </div>
   );
 }

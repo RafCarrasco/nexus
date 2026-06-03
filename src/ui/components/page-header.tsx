@@ -12,8 +12,8 @@ export function PageHeader({
   return (
     <div className="flex items-end justify-between mb-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">{title}</h1>
-        {subtitle && <p className="text-sm text-zinc-500 mt-1">{subtitle}</p>}
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{title}</h1>
+        {subtitle && <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{subtitle}</p>}
       </div>
       {action && <div className="flex items-center gap-2">{action}</div>}
     </div>

@@ -31,6 +31,7 @@ const PLACEHOLDER: Record<string, string> = {
   github:     '{\n  "token": "ghp_...",\n  "org": "your-org (optional, defaults to your repos)"\n}',
   cloudflare: '{\n  "token": "cf-api-token",\n  "accountId": "your-account-id (optional, needed for Workers)"\n}',
   azure:      '{\n  "tenantId": "...",\n  "clientId": "...",\n  "clientSecret": "...",\n  "subscriptionId": "optional"\n}',
+  n8n:        '{\n  "baseUrl": "https://your-n8n-host",\n  "apiKey": "n8n_api_..."\n}',
   supabase:   '{\n  "token": "sbp_...",\n  "orgSlug": "your-org-slug"\n}',
   docker:     '{}',
   fake:       '{\n  "resourceCount": 3\n}',
@@ -154,6 +155,7 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
               <option value="github">github</option>
               <option value="cloudflare">cloudflare</option>
               <option value="azure">azure</option>
+              <option value="n8n">n8n</option>
               <option value="docker">docker</option>
               <option value="fake">fake (dev only)</option>
             </select>

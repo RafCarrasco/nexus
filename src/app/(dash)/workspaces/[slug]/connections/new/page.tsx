@@ -8,7 +8,7 @@ import { NewConnectionForm } from '@/app/(dash)/connections/new/new-connection-f
 
 export const dynamic = 'force-dynamic';
 
-const OTHER_TYPES = ['supabase', 'vercel', 'github', 'cloudflare', 'azure', 'docker', 'fake'] as const;
+const OTHER_TYPES = ['supabase', 'vercel', 'github', 'cloudflare', 'azure', 'n8n', 'docker', 'fake'] as const;
 type OtherType = (typeof OTHER_TYPES)[number];
 
 export default async function WorkspaceNewConnectionPage({

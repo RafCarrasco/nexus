@@ -49,7 +49,7 @@ export function ConnectionCard({ connection, trigger }: Props) {
   const connStatus = aggregateStatus(allIncidents);
 
   return (
-    <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm open:shadow-md transition" open>
+    <details className="group rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm open:shadow-md transition" open>
       <summary className="cursor-pointer list-none p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3 min-w-0">
@@ -58,7 +58,7 @@ export function ConnectionCard({ connection, trigger }: Props) {
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-base font-semibold tracking-tight text-zinc-900">{connection.name}</span>
+                <span className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{connection.name}</span>
                 <Badge variant="outline" className="font-mono text-[10px] uppercase">
                   {connection.type}
                 </Badge>
@@ -70,7 +70,7 @@ export function ConnectionCard({ connection, trigger }: Props) {
                 </Badge>
                 <StatusPill status={connStatus} count={totalIncidents} />
               </div>
-              <div className="mt-1 text-xs text-zinc-500">
+              <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                 {connection.lastCollectedAt
                   ? `Última coleta ${connection.lastCollectedAt.toISOString().slice(0, 19).replace('T', ' ')}`
                   : 'Nunca coletada'}
@@ -82,18 +82,18 @@ export function ConnectionCard({ connection, trigger }: Props) {
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <div className="text-right">
-              <div className="text-xs text-zinc-500">Recursos</div>
-              <div className="text-sm font-semibold text-zinc-900">{connection.resources.length}</div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">Recursos</div>
+              <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{connection.resources.length}</div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-zinc-500">Incidentes</div>
-              <div className={`text-sm font-semibold ${totalIncidents > 0 ? 'text-red-600' : 'text-zinc-900'}`}>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">Incidentes</div>
+              <div className={`text-sm font-semibold ${totalIncidents > 0 ? 'text-red-600 dark:text-red-400' : 'text-zinc-900 dark:text-zinc-100'}`}>
                 {totalIncidents}
               </div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-zinc-500">Custo 30d</div>
-              <div className="text-sm font-semibold text-zinc-900">
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">Custo 30d</div>
+              <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                 <CostDisplay
                   amount={totalCost}
                   currency={currency}
@@ -108,22 +108,22 @@ export function ConnectionCard({ connection, trigger }: Props) {
         </div>
       </summary>
 
-      <div className="border-t border-zinc-100 px-5 py-4 space-y-5">
+      <div className="border-t border-zinc-100 dark:border-zinc-800 px-5 py-4 space-y-5">
         {connection.resources.length === 0 && (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
             Nenhum recurso descoberto ainda. Clique em Rodar coletor agora.
           </p>
         )}
         {[...groups.entries()].map(([kind, resources]) => (
           <div key={kind}>
-            <div className="text-[11px] uppercase tracking-wider text-zinc-500 mb-2">
+            <div className="text-[11px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2">
               {kindLabel(kind)} · {resources.length}
             </div>
-            <ul className="divide-y divide-zinc-100 rounded-lg border border-zinc-200 overflow-hidden">
+            <ul className="divide-y divide-zinc-100 dark:divide-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden">
               {resources.map((r) => (
-                <li key={r.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-zinc-50">
+                <li key={r.id} className="flex items-center justify-between px-4 py-2.5 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800">
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-zinc-900 truncate">
+                    <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
                       <Link href={`/resources/${r.id}` as never} className="hover:text-violet-600">
                         {r.name}
                       </Link>

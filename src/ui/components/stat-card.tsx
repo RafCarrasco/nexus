@@ -3,13 +3,13 @@ import type { ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
 
 const accentMap = {
-  default: 'text-zinc-900',
-  danger: 'text-red-600',
-  warning: 'text-amber-600',
+  default: 'text-zinc-900 dark:text-zinc-100',
+  danger: 'text-red-600 dark:text-red-400',
+  warning: 'text-amber-600 dark:text-amber-400',
 } as const;
 
 const cardClass =
-  'block rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:border-violet-300 hover:shadow';
+  'block rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-sm transition hover:border-violet-300 dark:hover:border-violet-700 hover:shadow';
 
 interface StatCardProps {
   label: string;
@@ -31,8 +31,8 @@ export function StatCard({
   const inner = (
     <>
       <div className="flex items-start justify-between">
-        <div className="text-sm font-medium text-zinc-600">{label}</div>
-        {href && <ChevronRight className="h-4 w-4 text-zinc-400" />}
+        <div className="text-sm font-medium text-zinc-600 dark:text-zinc-400">{label}</div>
+        {href && <ChevronRight className="h-4 w-4 text-zinc-400 dark:text-zinc-600" />}
       </div>
       <div className={`mt-3 text-3xl font-semibold tracking-tight ${valueClass}`}>{value}</div>
       {trend && trend.length > 1 && <Sparkline values={trend} />}

@@ -33,15 +33,15 @@ export default function LoginPage() {
   const devLoginEnabled = process.env.NEXUS_DEV_LOGIN === '1';
   const requireDevPassword = !!process.env.NEXUS_DEV_PASSWORD;
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 px-4">
+    <main className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4">
       <div className="w-full max-w-md">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm space-y-6">
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 shadow-sm space-y-6">
           {/* Brand */}
           <div className="flex items-center gap-3">
             <NexusMark />
             <div>
-              <div className="text-2xl font-semibold tracking-tight text-zinc-900">Nexus</div>
-              <div className="text-sm text-zinc-500">Plataforma interna de observabilidade</div>
+              <div className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Nexus</div>
+              <div className="text-sm text-zinc-500 dark:text-zinc-400">Plataforma interna de observabilidade</div>
             </div>
           </div>
 
@@ -108,7 +108,7 @@ export default function LoginPage() {
           )}
         </div>
 
-        <p className="mt-6 text-xs text-zinc-400 text-center">
+        <p className="mt-6 text-xs text-zinc-400 dark:text-zinc-500 text-center">
           © 2026 Procurement Garage · Nexus
         </p>
       </div>
