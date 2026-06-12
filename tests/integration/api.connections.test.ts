@@ -17,12 +17,14 @@ import { POST as createConnection, GET as listConnections } from '@/app/api/conn
 
 beforeAll(async () => {
   await prisma.connection.deleteMany();
+  await prisma.auditLog.deleteMany();
   await prisma.user.deleteMany();
   await prisma.user.create({ data: { id: 'admin-id', email: 'admin@procurementgarage.com', role: 'admin' } });
 });
 
 beforeEach(async () => {
   await prisma.connection.deleteMany();
+  await prisma.auditLog.deleteMany();
 });
 
 describe('connections API', () => {
