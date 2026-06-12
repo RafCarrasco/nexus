@@ -18,13 +18,23 @@ export type N8nExecStats = {
 export function AgentStatsPanel({
   stats,
   recentTokens,
+  recentModel,
+  recentTokenCostUsd,
 }: {
   stats?: N8nExecStats | null;
   recentTokens?: number;
+  recentModel?: string;
+  recentTokenCostUsd?: number;
 }) {
   if (!stats) return null;
   const pct = Math.round(stats.errorRate * 100);
   const errVariant = stats.errorRate === 0 ? 'active' : stats.errorRate < 0.5 ? 'default' : 'destructive';
+  const tokenValue =
+    recentTokens != null
+      ? recentTokenCostUsd != null
+        ? `${recentTokens.toLocaleString('pt-BR')} (~$${recentTokenCostUsd.toFixed(4)})`
+        : recentTokens.toLocaleString('pt-BR')
+      : '—';
 
   return (
     <section className="p-6">
@@ -36,11 +46,12 @@ export function AgentStatsPanel({
           label="Duração média"
           value={stats.avgDurationMs != null ? `${(stats.avgDurationMs / 1000).toFixed(1)}s` : '—'}
         />
-        <Stat label="Tokens IA (últ.)" value={recentTokens != null ? recentTokens.toLocaleString('pt-BR') : '—'} />
+        <Stat label="Tokens IA (últ.)" value={tokenValue} />
       </div>
       <p className="mt-3 text-xs text-zinc-500">
         ✓ {stats.success} sucesso · ✕ {stats.error} erro
         {stats.running ? ` · ${stats.running} rodando` : ''}
+        {recentModel ? ` · modelo ${recentModel}` : ''}
         {stats.lastErrorAt ? ` · último erro ${stats.lastErrorAt.slice(0, 19).replace('T', ' ')}` : ''}
       </p>
     </section>

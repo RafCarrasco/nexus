@@ -36,6 +36,8 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
     authConfig?: ProjectAuthConfig | null;
     execStats?: N8nExecStats | null;
     recentTokens?: number;
+    recentModel?: string;
+    recentTokenCostUsd?: number;
   };
 
   return (
@@ -78,7 +80,12 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
         <ServiceInventoryPanel inventory={meta.serviceInventory} authConfig={meta.authConfig} />
       )}
       {r.kind === 'n8n-workflow' && meta.execStats && (
-        <AgentStatsPanel stats={meta.execStats} recentTokens={meta.recentTokens} />
+        <AgentStatsPanel
+          stats={meta.execStats}
+          recentTokens={meta.recentTokens}
+          recentModel={meta.recentModel}
+          recentTokenCostUsd={meta.recentTokenCostUsd}
+        />
       )}
       <section className="p-6">
         <h2 className="mb-2 text-lg font-semibold">Tenants</h2>

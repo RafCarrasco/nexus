@@ -89,7 +89,7 @@ describe('N8nProvider', () => {
 
 // ── Agent observability (Frente B) ─────────────────────────────────────────────
 
-import { sumTokenUsage } from '@/providers/n8n';
+import { sumTokenUsage, findModelName } from '@/providers/n8n';
 
 function routeFetch(routes: Array<[string, unknown]>) {
   return (url: unknown) => {
@@ -122,6 +122,18 @@ describe('sumTokenUsage', () => {
 
   it('returns 0 for payloads with no token fields', () => {
     expect(sumTokenUsage({ a: { b: 1 }, c: 'x' })).toBe(0);
+  });
+});
+
+describe('findModelName', () => {
+  it('finds a model name nested in an execution payload', () => {
+    const payload = { runData: { agent: [{ options: { model: 'gpt-4o-mini' } }] } };
+    expect(findModelName(payload)).toBe('gpt-4o-mini');
+  });
+
+  it('ignores non-model strings under model-ish keys', () => {
+    expect(findModelName({ model: 'a generic label' })).toBeUndefined();
+    expect(findModelName({ nothing: 'here' })).toBeUndefined();
   });
 });
 

@@ -37,8 +37,9 @@ Branch: `feat/project-intelligence`. **Não dar push em `main` até o pipeline +
   duração média, tokens IA, último erro). Build-verificado.
 - ✅ **auto-incidente por pico de falha:** n8n getHealth migrado pro `execStats` (errorRate sobre
   janela de 20) → collector abre incidente quando agente começa a falhar. Teste "down" novo.
-- ⬜ **token → custo (R$/USD):** precisa tabela de preço por modelo; `getDailyCost` do n8n segue
-  null até isso. Mapear modelo→preço (OpenAI/Anthropic/etc).
+- ✅ **token → custo (USD):** `src/lib/llm-pricing.ts` (tabela preço/modelo + fallback) + `findModelName`
+  (extrai modelo do payload best-effort) → `recentTokenCostUsd`/`recentModel` no metadata + no painel.
+  Estimativa (não billing-accurate). `getDailyCost` segue null (custo é por-execução, não diário).
 - ⬜ **OpenClaw: bloqueado** — Rafael não sabe o que expõe (REST? logs? só container?).
   Investigar via Chrome/SSH quando der acesso. Fallback: docker provider (container health) + logs.
 

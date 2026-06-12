@@ -1,4 +1,5 @@
 import { fetchWithTimeout } from '@/lib/http';
+import { estimateTokenCostUsd } from '@/lib/llm-pricing';
 import type { Provider, ConnectionView, ResourceDTO, CostDTO, HealthDTO, TenantDTO } from './types';
 
 function headers(conn: ConnectionView): Record<string, string> {
@@ -110,8 +111,29 @@ export function sumTokenUsage(node: unknown, depth = 0): number {
   return total;
 }
 
-/** Token usage of the latest successful run (best-effort; fetches full exec data). */
-async function getRecentTokenUsage(conn: ConnectionView, workflowId: string): Promise<number | undefined> {
+/**
+ * Recursively find an LLM model name in an execution payload (best-effort). Matches
+ * string values under model-ish keys that look like a known model family.
+ */
+export function findModelName(node: unknown, depth = 0): string | undefined {
+  if (depth > 20 || node == null || typeof node !== 'object') return undefined;
+  for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+    if (typeof v === 'string' && /^model(name|_?id)?$/i.test(k) && /(gpt|claude|gemini|llama|mistral|o1|o3)/i.test(v)) {
+      return v;
+    }
+    if (typeof v === 'object') {
+      const found = findModelName(v, depth + 1);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
+/** Token usage + model of the latest successful run (best-effort; fetches full exec data). */
+async function getRecentTokenInfo(
+  conn: ConnectionView,
+  workflowId: string,
+): Promise<{ tokens: number; model?: string } | undefined> {
   try {
     const listRes = await fetchWithTimeout(
       `${baseUrl(conn)}/api/v1/executions?workflowId=${workflowId}&limit=1&status=success`,
@@ -130,7 +152,8 @@ async function getRecentTokenUsage(conn: ConnectionView, workflowId: string): Pr
     if (!res.ok) return undefined;
     const full = await res.json();
     const tokens = sumTokenUsage(full);
-    return tokens > 0 ? tokens : undefined;
+    if (tokens <= 0) return undefined;
+    return { tokens, model: findModelName(full) };
   } catch {
     return undefined;
   }
@@ -149,8 +172,8 @@ export const N8nProvider: Provider = {
     // Inactive workflows don't run, so skip the extra calls.
     return Promise.all(
       workflows.map(async (w) => {
-        const [execStats, recentTokens] = w.active
-          ? await Promise.all([getExecutionStats(conn, w.id), getRecentTokenUsage(conn, w.id)])
+        const [execStats, tokenInfo] = w.active
+          ? await Promise.all([getExecutionStats(conn, w.id), getRecentTokenInfo(conn, w.id)])
           : [null, undefined];
         return {
           externalId: `workflow:${w.id}`,
@@ -163,7 +186,9 @@ export const N8nProvider: Provider = {
             updatedAt: w.updatedAt,
             nodeCount: (w.nodes ?? []).length,
             execStats: execStats ?? undefined,
-            recentTokens,
+            recentTokens: tokenInfo?.tokens,
+            recentModel: tokenInfo?.model,
+            recentTokenCostUsd: tokenInfo ? estimateTokenCostUsd(tokenInfo.tokens, tokenInfo.model) : undefined,
           },
         };
       }),
