@@ -6,7 +6,9 @@ export default auth((req) => {
   const isAuth = !!req.auth;
   const url = req.nextUrl;
   const isPublic =
-    url.pathname.startsWith('/login') || url.pathname.startsWith('/api/auth');
+    url.pathname.startsWith('/login') ||
+    url.pathname.startsWith('/api/auth') ||
+    url.pathname.startsWith('/api/health');
   if (!isAuth && !isPublic) {
     const dest = new URL('/login', url);
     dest.searchParams.set('callbackUrl', url.pathname + url.search);
