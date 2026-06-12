@@ -1,6 +1,7 @@
 import { initializeApp, cert, getApps, deleteApp, type App } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { GoogleAuth } from 'google-auth-library';
+import { fetchWithTimeout, isSafePublicHttpUrl } from '@/lib/http';
 import type { Provider, ConnectionView, ResourceDTO, CostDTO, HealthDTO, TenantDTO } from './types';
 
 type SAJson = {
@@ -42,33 +43,6 @@ async function googleAccessToken(
   if (!token) throw new Error('no access token');
   return token;
 }
-
-/** fetch with a hard timeout so a hung/slow Google API can't stall the collector lock. */
-async function fetchWithTimeout(url: string, init: RequestInit = {}, ms = 10000): Promise<Response> {
-  return fetch(url, { ...init, signal: AbortSignal.timeout(ms) });
-}
-
-/**
- * Guard the hosting health probe against SSRF: `defaultUrl` comes from the Firebase
- * Hosting API (connection-owner controlled), so reject non-http(s) and internal hosts
- * before probing. Custom domains are allowed; loopback/private/metadata ranges are not.
- */
-function isSafePublicHttpUrl(raw: string): boolean {
-  let u: URL;
-  try {
-    u = new URL(raw);
-  } catch {
-    return false;
-  }
-  if (u.protocol !== 'https:' && u.protocol !== 'http:') return false;
-  const h = u.hostname.toLowerCase();
-  if (h === 'localhost' || h.endsWith('.local') || h.endsWith('.internal')) return false;
-  if (/^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(h)) return false;
-  if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return false;
-  if (h === '::1' || h === '[::1]') return false;
-  return true;
-}
-
 
 type HostingSite = {
   name: string;

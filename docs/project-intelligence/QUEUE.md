@@ -50,8 +50,10 @@ Branch: `feat/project-intelligence`. **Não dar push em `main` até o pipeline +
 - Testes: cobertura dos providers novos, integração com DB real no CI.
 
 ### Achados de review do PR #1 diferidos pra cá
-- **Timeout em TODOS os providers** (n8n/vercel/github/cloudflare/azure/supabase/docker) — só
-  o firebase ganhou `fetchWithTimeout` no PR #1; replicar o padrão nos outros.
+- ✅ **Timeout em TODOS os providers** — `src/lib/http.ts` (`fetchWithTimeout` + `isSafePublicHttpUrl`
+  + `probePublicUrl`); firebase/n8n refatorados pra importar; vercel/github/cloudflare/azure/supabase
+  ligados; HEAD probes externos (vercel/cloudflare/azure) agora com guard SSRF. 6 testes do lib.
+  (docker usa dockerode, não fetch — N/A.)
 - **runCost: pular recursos não-`project:` do firebase** — hoje os rows de inventário
   (`firestore:`/`storage:`/`rtdb:`) geram chamada no-op + ruído de log + métrica `calls` inflada.
 - **/api/health rate-limit no Traefik** — PR #1 adicionou cache in-process (5s) que limita carga

@@ -1,3 +1,4 @@
+import { fetchWithTimeout, probePublicUrl } from '@/lib/http';
 import type { Provider, ConnectionView, ResourceDTO, CostDTO, HealthDTO, TenantDTO } from './types';
 
 const MGMT = 'https://management.azure.com';
@@ -21,7 +22,7 @@ async function azureAccessToken(conn: ConnectionView): Promise<string> {
     client_secret: clientSecret,
     scope: 'https://management.azure.com/.default',
   });
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
     { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
   );
@@ -48,7 +49,7 @@ export const AzureProvider: Provider = {
     const { subscriptionId } = cfg(conn);
 
     if (!subscriptionId) {
-      const res = await fetch(`${MGMT}/subscriptions?api-version=2020-01-01`, { headers });
+      const res = await fetchWithTimeout(`${MGMT}/subscriptions?api-version=2020-01-01`, { headers });
       if (!res.ok) throw new Error(`azure listResources (subscriptions) ${res.status}`);
       const data = (await res.json()) as { value: AzureSub[] };
       return data.value.map((s) => ({
@@ -61,7 +62,7 @@ export const AzureProvider: Provider = {
 
     // Enumerate App Services within subscription
     const url = `${MGMT}/subscriptions/${subscriptionId}/providers/Microsoft.Web/sites?api-version=2022-03-01`;
-    const res = await fetch(url, { headers });
+    const res = await fetchWithTimeout(url, { headers });
     if (!res.ok) throw new Error(`azure listResources (sites) ${res.status}`);
     const data = (await res.json()) as { value: AzureApp[] };
     return data.value.map((app) => ({
@@ -92,12 +93,7 @@ export const AzureProvider: Provider = {
     const meta = (resource as unknown as { metadata?: Record<string, unknown> } | undefined)?.metadata;
     const host = meta?.defaultHostName as string | undefined;
     if (!host) return { status: 'unknown', message: 'no defaultHostName in metadata' };
-    try {
-      const res = await fetch(`https://${host}`, { method: 'HEAD' });
-      return res.ok ? { status: 'ok' } : { status: 'degraded', message: `http ${res.status}` };
-    } catch (e) {
-      return { status: 'degraded', message: (e as Error).message };
-    }
+    return probePublicUrl(`https://${host}`);
   },
 
   async listTenants(): Promise<TenantDTO[]> {

@@ -1,3 +1,4 @@
+import { fetchWithTimeout, probePublicUrl } from '@/lib/http';
 import type { Provider, ConnectionView, ResourceDTO, CostDTO, HealthDTO, TenantDTO } from './types';
 
 const API = 'https://api.cloudflare.com/client/v4';
@@ -27,7 +28,7 @@ export const CloudflareProvider: Provider = {
     const resources: ResourceDTO[] = [];
 
     // Zones
-    const zRes = await fetch(`${API}/zones?per_page=50`, { headers: authHeaders(conn) });
+    const zRes = await fetchWithTimeout(`${API}/zones?per_page=50`, { headers: authHeaders(conn) });
     if (!zRes.ok) throw new Error(`cloudflare listResources (zones) ${zRes.status}`);
     const zData = (await zRes.json()) as { result: CFZone[] };
     for (const z of zData.result) {
@@ -47,7 +48,7 @@ export const CloudflareProvider: Provider = {
     // Workers (requires accountId)
     const accountId = conn.config.accountId as string | undefined;
     if (accountId) {
-      const wRes = await fetch(`${API}/accounts/${accountId}/workers/scripts`, { headers: authHeaders(conn) });
+      const wRes = await fetchWithTimeout(`${API}/accounts/${accountId}/workers/scripts`, { headers: authHeaders(conn) });
       if (wRes.ok) {
         const wData = (await wRes.json()) as { result: CFWorkerScript[] };
         for (const s of wData.result) {
@@ -91,12 +92,7 @@ export const CloudflareProvider: Provider = {
     const meta = (resource as unknown as { metadata?: Record<string, unknown> } | undefined)?.metadata;
     const zoneName = meta?.name as string | undefined;
     if (!zoneName) return { status: 'unknown', message: 'no zone name in metadata' };
-    try {
-      const res = await fetch(`https://${zoneName}`, { method: 'HEAD' });
-      return res.ok ? { status: 'ok' } : { status: 'degraded', message: `http ${res.status}` };
-    } catch (e) {
-      return { status: 'degraded', message: (e as Error).message };
-    }
+    return probePublicUrl(`https://${zoneName}`);
   },
 
   async listTenants(): Promise<TenantDTO[]> {
@@ -104,7 +100,7 @@ export const CloudflareProvider: Provider = {
   },
 
   async validate(conn): Promise<void> {
-    const res = await fetch(`${API}/user/tokens/verify`, { headers: authHeaders(conn) });
+    const res = await fetchWithTimeout(`${API}/user/tokens/verify`, { headers: authHeaders(conn) });
     const data = (await res.json()) as { success: boolean };
     if (!res.ok || !data.success) throw new Error(`cloudflare validate: token invalid (${res.status})`);
   },

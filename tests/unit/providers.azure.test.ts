@@ -82,7 +82,10 @@ describe('AzureProvider', () => {
     const fakeResource = { metadata: { defaultHostName: 'app1.azurewebsites.net' } };
     const h = await AzureProvider.getHealth(conn, '/subs/s/sites/app1', fakeResource as never);
     expect(h.status).toBe('ok');
-    expect(fetchMock).toHaveBeenCalledWith('https://app1.azurewebsites.net', { method: 'HEAD' });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://app1.azurewebsites.net',
+      expect.objectContaining({ method: 'HEAD' }),
+    );
   });
 
   it('getHealth returns unknown with no hostname', async () => {

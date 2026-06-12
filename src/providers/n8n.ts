@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from '@/lib/http';
 import type { Provider, ConnectionView, ResourceDTO, CostDTO, HealthDTO, TenantDTO } from './types';
 
 function headers(conn: ConnectionView): Record<string, string> {
@@ -11,11 +12,6 @@ function baseUrl(conn: ConnectionView): string {
   const url = String(conn.config.baseUrl ?? '').replace(/\/+$/, '');
   if (!url) throw new Error('baseUrl missing');
   return url;
-}
-
-/** fetch with a hard timeout so a hung n8n instance can't stall the collector lock. */
-async function fetchWithTimeout(url: string, init: RequestInit = {}, ms = 10000): Promise<Response> {
-  return fetch(url, { ...init, signal: AbortSignal.timeout(ms) });
 }
 
 type N8nWorkflow = {

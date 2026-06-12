@@ -1,3 +1,4 @@
+import { fetchWithTimeout, probePublicUrl } from '@/lib/http';
 import type { Provider, ConnectionView, ResourceDTO, CostDTO, HealthDTO, TenantDTO } from './types';
 
 const API = 'https://api.vercel.com';
@@ -23,7 +24,7 @@ export const VercelProvider: Provider = {
   async listResources(conn): Promise<ResourceDTO[]> {
     const teamId = conn.config.teamId as string | undefined;
     const url = teamId ? `${API}/v9/projects?teamId=${teamId}` : `${API}/v9/projects`;
-    const res = await fetch(url, { headers: authHeaders(conn) });
+    const res = await fetchWithTimeout(url, { headers: authHeaders(conn) });
     if (!res.ok) throw new Error(`vercel listResources ${res.status}`);
     const data = (await res.json()) as { projects: VercelProject[] };
     return data.projects.map((p) => ({
@@ -44,7 +45,7 @@ export const VercelProvider: Provider = {
 
   async getLastActivity(conn, externalId): Promise<Date | null> {
     const url = `${API}/v6/deployments?projectId=${externalId}&limit=1`;
-    const res = await fetch(url, { headers: authHeaders(conn) });
+    const res = await fetchWithTimeout(url, { headers: authHeaders(conn) });
     if (!res.ok) return null;
     const data = (await res.json()) as { deployments: VercelDeployment[] };
     const first = data.deployments[0];
@@ -57,12 +58,7 @@ export const VercelProvider: Provider = {
     // Collector must pass the resource; use metadata if injected. Fallback: unknown.
     const url = (resource as unknown as { metadata?: { productionUrl?: unknown } } | undefined)?.metadata?.productionUrl;
     if (typeof url !== 'string' || !url) return { status: 'unknown', message: 'no productionUrl' };
-    try {
-      const res = await fetch(`https://${url}`, { method: 'HEAD' });
-      return res.ok ? { status: 'ok' } : { status: 'degraded', message: `http ${res.status}` };
-    } catch (e) {
-      return { status: 'degraded', message: (e as Error).message };
-    }
+    return probePublicUrl(`https://${url}`);
   },
 
   async listTenants(): Promise<TenantDTO[]> {
@@ -70,7 +66,7 @@ export const VercelProvider: Provider = {
   },
 
   async validate(conn): Promise<void> {
-    const res = await fetch(`${API}/v2/user`, { headers: authHeaders(conn) });
+    const res = await fetchWithTimeout(`${API}/v2/user`, { headers: authHeaders(conn) });
     if (!res.ok) throw new Error(`vercel validate: invalid token (${res.status})`);
   },
 };
