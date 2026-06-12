@@ -10,7 +10,7 @@ Branch: `feat/project-intelligence`. **Não dar push em `main` até o pipeline +
 |---|--------|--------|------|
 | A | Firebase profundo (inventário de serviços) | ✅ done (provider + UI) | `docs/superpowers/specs/2026-06-12-project-intelligence-design.md` |
 | E | Auto-deploy (GitHub Actions CI-gated + SSH) | ✅ arquivos prontos / ativação pendente (Rafael) | `docs/auto-deploy.md` |
-| B | Observabilidade de agentes (n8n + OpenClaw) | ⬜ fila | a escrever |
+| B | Observabilidade de agentes (n8n + OpenClaw) | n8n dados ✅ / UI+OpenClaw pendente | inline abaixo |
 | C | Parrudão (hardening: segurança, resiliência, testes) | ⬜ fila | a escrever |
 | D | Roadmap breadth (uptime, alerting, status page, forecast, dark mode...) | ⬜ fila | `docs/roadmap.md` |
 
@@ -28,11 +28,19 @@ Branch: `feat/project-intelligence`. **Não dar push em `main` até o pipeline +
 - ✅ doc `auto-deploy.md` reescrito; rascunho n8n preservado em `auto-deploy-n8n-legacy.md`.
 - ⬜ **Ativação (Rafael):** deploy key SSH + secrets GitHub + symlink do script no VPS. Checklist no doc.
 
-## B — Observabilidade de agentes (notas pré-spec)
-- n8n: ingerir execuções (sucesso/falha/duração) ao longo do tempo, falha por nó,
-  **tokens de nós de IA (LangChain/AI Agent) → custo estimado**, auto-incidente em pico.
-- OpenClaw: **bloqueio** — preciso saber o que expõe (API REST? logs? só container Docker?).
-  Perguntar ao Rafael quando chegar a vez. Fallback: tratar como container (docker provider) + logs.
+## B — Observabilidade de agentes
+- ✅ **n8n camada de dados:** provider enriquece workflows ativos com `execStats`
+  (window/success/error/errorRate/avgDurationMs/lastErrorAt/lastRunAt) + `recentTokens`
+  (parser best-effort de tokens de IA da última execução). `fetchWithTimeout` em todas as
+  chamadas. Só workflows ativos (poupa calls). 4 testes novos.
+- ⬜ **n8n UI:** painel "Agentes / execuções" na tela do recurso `n8n-workflow` (taxa de erro,
+  duração média, tokens, último erro) — additive como o ServiceInventoryPanel.
+- ⬜ **token → custo (R$/USD):** precisa tabela de preço por modelo; `getDailyCost` do n8n segue
+  null até isso. Mapear modelo→preço (OpenAI/Anthropic/etc).
+- ⬜ **auto-incidente por pico de falha:** usar `errorRate` do execStats pra abrir incidente
+  (hoje getHealth ainda usa "erros nos últimos 5"). Migrar health pro execStats.
+- ⬜ **OpenClaw: bloqueado** — Rafael não sabe o que expõe (REST? logs? só container?).
+  Investigar via Chrome/SSH quando der acesso. Fallback: docker provider (container health) + logs.
 
 ## C — Parrudão (notas pré-spec)
 - Segurança: authz nas rotas API (quem pode ler/escrever connection/resource), vault de

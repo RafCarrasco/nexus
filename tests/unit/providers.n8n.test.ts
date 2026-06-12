@@ -86,3 +86,87 @@ describe('N8nProvider', () => {
     await expect(N8nProvider.validate!(conn)).rejects.toThrow('n8n validate 401');
   });
 });
+
+// ── Agent observability (Frente B) ─────────────────────────────────────────────
+
+import { sumTokenUsage } from '@/providers/n8n';
+
+function routeFetch(routes: Array<[string, unknown]>) {
+  return (url: unknown) => {
+    const u = typeof url === 'string' ? url : '';
+    for (const [needle, body] of routes) {
+      if (u.includes(needle)) {
+        if (body === '404') return Promise.resolve({ ok: false, status: 404 });
+        return Promise.resolve({ ok: true, json: async () => body });
+      }
+    }
+    return Promise.resolve({ ok: true, json: async () => ({}) });
+  };
+}
+
+describe('sumTokenUsage', () => {
+  it('sums totalTokens nested in an n8n execution payload, ignoring prompt/completion', () => {
+    const payload = {
+      data: {
+        resultData: {
+          runData: {
+            'AI Agent': [
+              { data: { ai: [[{ json: { tokenUsage: { promptTokens: 1000, completionTokens: 500, totalTokens: 1500 } } }]] } },
+            ],
+          },
+        },
+      },
+    };
+    expect(sumTokenUsage(payload)).toBe(1500);
+  });
+
+  it('returns 0 for payloads with no token fields', () => {
+    expect(sumTokenUsage({ a: { b: 1 }, c: 'x' })).toBe(0);
+  });
+});
+
+describe('N8nProvider agent stats', () => {
+  beforeEach(() => fetchMock.mockReset());
+
+  it('enriches active workflows with execStats and recentTokens', async () => {
+    fetchMock.mockImplementation(
+      routeFetch([
+        ['/workflows?limit=250', { data: [{ id: '42', name: 'Agent WF', active: true, tags: [], nodes: [{}] }] }],
+        ['includeData=true', { data: { runData: { n: [{ json: { tokenUsage: { totalTokens: 1500 } } }] } } }],
+        ['status=success', { data: [{ id: 'e1', status: 'success' }] }],
+        [
+          'limit=50',
+          {
+            data: [
+              { id: 'e1', status: 'success', startedAt: '2026-06-01T10:00:00.000Z', stoppedAt: '2026-06-01T10:00:02.000Z' },
+              { id: 'e2', status: 'error', startedAt: '2026-06-01T09:00:00.000Z' },
+              { id: 'e3', status: 'success', startedAt: '2026-06-01T08:00:00.000Z', stoppedAt: '2026-06-01T08:00:04.000Z' },
+              { id: 'e4', status: 'success', startedAt: '2026-06-01T07:00:00.000Z', stoppedAt: '2026-06-01T07:00:06.000Z' },
+            ],
+          },
+        ],
+      ]),
+    );
+
+    const resources = await N8nProvider.listResources(conn);
+    expect(resources).toHaveLength(1);
+    const stats = resources[0].metadata.execStats as Record<string, unknown>;
+    expect(stats).toMatchObject({ window: 4, success: 3, error: 1, errorRate: 0.25, avgDurationMs: 4000 });
+    expect(stats.lastErrorAt).toBe('2026-06-01T09:00:00.000Z');
+    expect(resources[0].metadata.recentTokens).toBe(1500);
+  });
+
+  it('skips stats/token calls for inactive workflows (single fetch)', async () => {
+    fetchMock.mockImplementation(
+      routeFetch([['/workflows?limit=250', { data: [{ id: '99', name: 'Off', active: false, nodes: [] }] }]]),
+    );
+    const resources = await N8nProvider.listResources(conn);
+    expect(resources[0].metadata.execStats).toBeUndefined();
+    expect(resources[0].metadata.recentTokens).toBeUndefined();
+    // No executions endpoint should be hit for an inactive workflow.
+    const hitExecutions = fetchMock.mock.calls.some(
+      (c) => typeof c[0] === 'string' && c[0].includes('/executions'),
+    );
+    expect(hitExecutions).toBe(false);
+  });
+});
