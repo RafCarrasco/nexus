@@ -43,6 +43,32 @@ async function googleAccessToken(
   return token;
 }
 
+/** fetch with a hard timeout so a hung/slow Google API can't stall the collector lock. */
+async function fetchWithTimeout(url: string, init: RequestInit = {}, ms = 10000): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(ms) });
+}
+
+/**
+ * Guard the hosting health probe against SSRF: `defaultUrl` comes from the Firebase
+ * Hosting API (connection-owner controlled), so reject non-http(s) and internal hosts
+ * before probing. Custom domains are allowed; loopback/private/metadata ranges are not.
+ */
+function isSafePublicHttpUrl(raw: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') return false;
+  const h = u.hostname.toLowerCase();
+  if (h === 'localhost' || h.endsWith('.local') || h.endsWith('.internal')) return false;
+  if (/^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(h)) return false;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return false;
+  if (h === '::1' || h === '[::1]') return false;
+  return true;
+}
+
 
 type HostingSite = {
   name: string;
@@ -97,7 +123,7 @@ async function listEnabledServices(conn: ConnectionView): Promise<string[]> {
   try {
     const token = await googleAccessToken(conn);
     const pid = projectId(conn);
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://serviceusage.googleapis.com/v1/projects/${pid}/services?filter=state:ENABLED&pageSize=200`,
       { headers: { Authorization: `Bearer ${token}` } },
     );
@@ -117,7 +143,7 @@ async function listFirestoreDatabases(conn: ConnectionView): Promise<FirestoreDa
   try {
     const token = await googleAccessToken(conn);
     const pid = projectId(conn);
-    const res = await fetch(`https://firestore.googleapis.com/v1/projects/${pid}/databases`, {
+    const res = await fetchWithTimeout(`https://firestore.googleapis.com/v1/projects/${pid}/databases`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return [];
@@ -132,7 +158,7 @@ async function listFirestoreDatabases(conn: ConnectionView): Promise<FirestoreDa
 async function listFirestoreCollections(conn: ConnectionView, databaseName: string): Promise<string[]> {
   try {
     const token = await googleAccessToken(conn);
-    const res = await fetch(`https://firestore.googleapis.com/v1/${databaseName}/documents:listCollectionIds`, {
+    const res = await fetchWithTimeout(`https://firestore.googleapis.com/v1/${databaseName}/documents:listCollectionIds`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' },
       body: JSON.stringify({ pageSize: 100 }),
@@ -151,7 +177,7 @@ async function listStorageBuckets(conn: ConnectionView): Promise<StorageBucket[]
   try {
     const token = await googleAccessToken(conn);
     const pid = projectId(conn);
-    const res = await fetch(`https://storage.googleapis.com/storage/v1/b?project=${pid}`, {
+    const res = await fetchWithTimeout(`https://storage.googleapis.com/storage/v1/b?project=${pid}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return [];
@@ -168,7 +194,7 @@ async function listRtdbInstances(conn: ConnectionView): Promise<RtdbInstance[]> 
   try {
     const token = await googleAccessToken(conn, ['https://www.googleapis.com/auth/firebase']);
     const pid = projectId(conn);
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://firebasedatabase.googleapis.com/v1beta/projects/${pid}/locations/-/instances`,
       { headers: { Authorization: `Bearer ${token}` } },
     );
@@ -190,7 +216,7 @@ async function getAuthConfig(conn: ConnectionView): Promise<AuthConfig | undefin
   try {
     const token = await googleAccessToken(conn, ['https://www.googleapis.com/auth/firebase']);
     const pid = projectId(conn);
-    const res = await fetch(`https://identitytoolkit.googleapis.com/admin/v2/projects/${pid}/config`, {
+    const res = await fetchWithTimeout(`https://identitytoolkit.googleapis.com/admin/v2/projects/${pid}/config`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return undefined;
@@ -266,23 +292,25 @@ export const FirebaseProvider: Provider = {
       getAuthConfig(conn),
     ]);
 
-    const firestoreResources: ResourceDTO[] = [];
-    for (const db of firestoreDbs) {
-      // Collection ids only for the default database (top-level, best-effort).
-      const collectionIds = db.name.endsWith('/(default)') ? await listFirestoreCollections(conn, db.name) : [];
-      firestoreResources.push({
-        externalId: `firestore:${db.name}`,
-        name: db.name.split('/').pop() ?? db.name,
-        kind: 'firebase-firestore',
-        metadata: {
-          locationId: db.locationId,
-          type: db.type,
-          collectionIds,
-          collectionCount: collectionIds.length,
-          projectId: id,
-        },
-      });
-    }
+    // Collection ids only for the default database (top-level, best-effort).
+    // Concurrent so multiple databases don't serialize on the collector's lock window.
+    const firestoreResources: ResourceDTO[] = await Promise.all(
+      firestoreDbs.map(async (db) => {
+        const collectionIds = db.name.endsWith('/(default)') ? await listFirestoreCollections(conn, db.name) : [];
+        return {
+          externalId: `firestore:${db.name}`,
+          name: db.name.split('/').pop() ?? db.name,
+          kind: 'firebase-firestore',
+          metadata: {
+            locationId: db.locationId,
+            type: db.type,
+            collectionIds,
+            collectionCount: collectionIds.length,
+            projectId: id,
+          },
+        };
+      }),
+    );
 
     const storageResources: ResourceDTO[] = buckets.map((b) => ({
       externalId: `storage:${b.name}`,
@@ -425,7 +453,8 @@ export const FirebaseProvider: Provider = {
         const site = sites.find((s) => s.name === siteName);
         const url = site?.defaultUrl;
         if (!url) return { status: 'unknown', message: 'no defaultUrl' };
-        const res = await fetch(url, { method: 'HEAD' });
+        if (!isSafePublicHttpUrl(url)) return { status: 'unknown', message: 'unsafe defaultUrl' };
+        const res = await fetchWithTimeout(url, { method: 'HEAD' });
         if (res.ok) return { status: 'ok' };
         return { status: 'degraded', message: `HTTP ${res.status}` };
       } catch (e) {

@@ -41,5 +41,20 @@ Branch: `feat/project-intelligence`. **Não dar push em `main` até o pipeline +
   collector (já tem try/catch por etapa — auditar), timeout nas chamadas fetch (hoje sem timeout).
 - Testes: cobertura dos providers novos, integração com DB real no CI.
 
+### Achados de review do PR #1 diferidos pra cá
+- **Timeout em TODOS os providers** (n8n/vercel/github/cloudflare/azure/supabase/docker) — só
+  o firebase ganhou `fetchWithTimeout` no PR #1; replicar o padrão nos outros.
+- **runCost: pular recursos não-`project:` do firebase** — hoje os rows de inventário
+  (`firestore:`/`storage:`/`rtdb:`) geram chamada no-op + ruído de log + métrica `calls` inflada.
+- **/api/health rate-limit no Traefik** — PR #1 adicionou cache in-process (5s) que limita carga
+  no DB; pra DoS completo, considerar `rateLimit` middleware do Traefik na rota.
+- **ServiceInventory tri-state** — distinguir "API negada" de "serviço inativo" (badge hoje é
+  binário em-uso/inativo; quando Service Usage retorna [] não dá pra afirmar inativo).
+- **deploy.sh expand/contract** — migração forward não reverte no rollback (documentado);
+  considerar guard que exija migração backward-compatible.
+- **Mock de teste** `accessTokenMock` retorna `{token}` em vez de `string` (contrato real do
+  `googleAccessToken`) — corrigir pra `.mockResolvedValue('fake-token')`.
+- **npm audit**: 13 moderate (firebase-admin/next/prisma chains), 0 high/critical — ticket à parte.
+
 ## D — Roadmap breadth
 Ver `docs/roadmap.md` (16 itens já priorizados). Puxar daqui quando A/B/C zerarem.

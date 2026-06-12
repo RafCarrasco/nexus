@@ -8,7 +8,8 @@ export default auth((req) => {
   const isPublic =
     url.pathname.startsWith('/login') ||
     url.pathname.startsWith('/api/auth') ||
-    url.pathname.startsWith('/api/health');
+    // Exact match, not prefix: a future /api/health-* route must not inherit public access.
+    url.pathname === '/api/health';
   if (!isAuth && !isPublic) {
     const dest = new URL('/login', url);
     dest.searchParams.set('callbackUrl', url.pathname + url.search);

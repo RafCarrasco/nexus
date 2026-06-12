@@ -371,4 +371,21 @@ describe('FirebaseProvider deep inventory', () => {
     expect(h.status).toBe('unknown');
     expect(listUsersMock).not.toHaveBeenCalled();
   });
+
+  it('blocks SSRF: an internal hosting defaultUrl is not probed', async () => {
+    const siteName = 'projects/demo-proj/sites/evil';
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('firebasehosting.googleapis.com')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ sites: [{ name: siteName, defaultUrl: 'http://169.254.169.254/' }] }),
+        });
+      }
+      if (url.includes('169.254.169.254')) throw new Error('SSRF: internal URL must not be probed');
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+    const h = await FirebaseProvider.getHealth(conn, `hosting:${siteName}`);
+    expect(h.status).toBe('unknown');
+    expect(h.message).toContain('unsafe');
+  });
 });
