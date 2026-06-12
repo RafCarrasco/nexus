@@ -230,3 +230,145 @@ describe('FirebaseProvider', () => {
     expect(fetchMock.mock.calls[0][0]).toContain('monitoring.googleapis.com');
   });
 });
+
+// ── Deep service inventory (Frente A) ──────────────────────────────────────────
+
+/** URL-routing fetch mock so call order doesn't matter. '403' body → 403 response. */
+function routeFetch(routes: Array<[string, unknown]>) {
+  return (url: string) => {
+    for (const [needle, body] of routes) {
+      if (url.includes(needle)) {
+        if (body === '403') return Promise.resolve({ ok: false, status: 403 });
+        return Promise.resolve({ ok: true, json: async () => body });
+      }
+    }
+    return Promise.resolve({ ok: true, json: async () => ({}) });
+  };
+}
+
+const FULL_ROUTES: Array<[string, unknown]> = [
+  ['firebasehosting.googleapis.com', { sites: [] }],
+  ['cloudfunctions.googleapis.com', { functions: [] }],
+  [
+    'serviceusage.googleapis.com',
+    {
+      services: [
+        { config: { name: 'firestore.googleapis.com' } },
+        { config: { name: 'firebasestorage.googleapis.com' } },
+        { config: { name: 'identitytoolkit.googleapis.com' } },
+      ],
+    },
+  ],
+  [':listCollectionIds', { collectionIds: ['users', 'forms', 'submissions'] }],
+  [
+    '/databases',
+    { databases: [{ name: 'projects/demo-proj/databases/(default)', locationId: 'nam5', type: 'FIRESTORE_NATIVE' }] },
+  ],
+  ['storage.googleapis.com', { items: [{ name: 'demo-proj.appspot.com', location: 'US', storageClass: 'STANDARD' }] }],
+  [
+    'firebasedatabase.googleapis.com',
+    {
+      instances: [
+        {
+          name: 'projects/demo-proj/locations/us-central1/instances/demo-proj-default-rtdb',
+          state: 'ACTIVE',
+          databaseUrl: 'https://demo-proj-default-rtdb.firebaseio.com',
+        },
+      ],
+    },
+  ],
+  [
+    'identitytoolkit.googleapis.com',
+    {
+      signIn: { email: { enabled: true }, anonymous: { enabled: false } },
+      authorizedDomains: ['demo-proj.web.app'],
+      mfa: { state: 'DISABLED' },
+    },
+  ],
+];
+
+describe('FirebaseProvider deep inventory', () => {
+  beforeEach(() => {
+    fetchMock.mockReset();
+    listUsersMock.mockResolvedValue({ users: [] });
+  });
+
+  it('discovers Firestore databases as firebase-firestore resources', async () => {
+    fetchMock.mockImplementation(routeFetch(FULL_ROUTES));
+    const r = await FirebaseProvider.listResources(conn);
+    const fs = r.filter((x) => x.kind === 'firebase-firestore');
+    expect(fs).toHaveLength(1);
+    expect(fs[0]).toMatchObject({
+      externalId: 'firestore:projects/demo-proj/databases/(default)',
+      name: '(default)',
+      metadata: expect.objectContaining({ locationId: 'nam5', type: 'FIRESTORE_NATIVE' }),
+    });
+    expect(fs[0].metadata.collectionIds).toEqual(['users', 'forms', 'submissions']);
+  });
+
+  it('discovers Storage buckets as firebase-storage-bucket resources', async () => {
+    fetchMock.mockImplementation(routeFetch(FULL_ROUTES));
+    const r = await FirebaseProvider.listResources(conn);
+    const buckets = r.filter((x) => x.kind === 'firebase-storage-bucket');
+    expect(buckets).toHaveLength(1);
+    expect(buckets[0]).toMatchObject({
+      externalId: 'storage:demo-proj.appspot.com',
+      name: 'demo-proj.appspot.com',
+      metadata: expect.objectContaining({ location: 'US', storageClass: 'STANDARD' }),
+    });
+  });
+
+  it('discovers Realtime Database instances as firebase-rtdb resources', async () => {
+    fetchMock.mockImplementation(routeFetch(FULL_ROUTES));
+    const r = await FirebaseProvider.listResources(conn);
+    const rtdb = r.filter((x) => x.kind === 'firebase-rtdb');
+    expect(rtdb).toHaveLength(1);
+    expect(rtdb[0]).toMatchObject({
+      externalId: 'rtdb:projects/demo-proj/locations/us-central1/instances/demo-proj-default-rtdb',
+      name: 'demo-proj-default-rtdb',
+      metadata: expect.objectContaining({
+        state: 'ACTIVE',
+        databaseUrl: 'https://demo-proj-default-rtdb.firebaseio.com',
+      }),
+    });
+  });
+
+  it('builds serviceInventory on the project resource', async () => {
+    fetchMock.mockImplementation(routeFetch(FULL_ROUTES));
+    const r = await FirebaseProvider.listResources(conn);
+    const project = r.find((x) => x.kind === 'firebase-project')!;
+    const inv = project.metadata.serviceInventory as Array<{ key: string; enabled: boolean; headline?: string }>;
+    expect(inv).toBeDefined();
+    const fs = inv.find((i) => i.key === 'firestore')!;
+    expect(fs.enabled).toBe(true);
+    expect(fs.headline).toContain('banco');
+    const storage = inv.find((i) => i.key === 'storage')!;
+    expect(storage.enabled).toBe(true);
+    const auth = inv.find((i) => i.key === 'auth')!;
+    expect(auth.enabled).toBe(true);
+  });
+
+  it('degrades gracefully when every inventory API returns 403', async () => {
+    fetchMock.mockImplementation(
+      routeFetch([
+        ['firebasehosting.googleapis.com', { sites: [] }],
+        ['cloudfunctions.googleapis.com', { functions: [] }],
+        ['serviceusage.googleapis.com', '403'],
+        [':listCollectionIds', '403'],
+        ['/databases', '403'],
+        ['storage.googleapis.com', '403'],
+        ['firebasedatabase.googleapis.com', '403'],
+        ['identitytoolkit.googleapis.com', '403'],
+      ]),
+    );
+    const r = await FirebaseProvider.listResources(conn);
+    expect(r).toEqual(expect.arrayContaining([expect.objectContaining({ kind: 'firebase-project' })]));
+    expect(r.some((x) => ['firebase-firestore', 'firebase-storage-bucket', 'firebase-rtdb'].includes(x.kind))).toBe(false);
+  });
+
+  it('reports unknown health for inventory resources (no spurious incidents)', async () => {
+    const h = await FirebaseProvider.getHealth(conn, 'firestore:projects/demo-proj/databases/(default)');
+    expect(h.status).toBe('unknown');
+    expect(listUsersMock).not.toHaveBeenCalled();
+  });
+});
