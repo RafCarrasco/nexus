@@ -8,7 +8,7 @@ Branch: `feat/project-intelligence`. **Não dar push em `main` até o pipeline +
 
 | # | Frente | Estado | Spec |
 |---|--------|--------|------|
-| A | Firebase profundo (inventário de serviços) | provider ✅ / UI pendente | `docs/superpowers/specs/2026-06-12-project-intelligence-design.md` |
+| A | Firebase profundo (inventário de serviços) | ✅ done (provider + UI) | `docs/superpowers/specs/2026-06-12-project-intelligence-design.md` |
 | E | Auto-deploy (GitHub Actions CI-gated + SSH) | ✅ arquivos prontos / ativação pendente (Rafael) | `docs/auto-deploy.md` |
 | B | Observabilidade de agentes (n8n + OpenClaw) | ⬜ fila | a escrever |
 | C | Parrudão (hardening: segurança, resiliência, testes) | ⬜ fila | a escrever |
@@ -18,7 +18,8 @@ Branch: `feat/project-intelligence`. **Não dar push em `main` até o pipeline +
 - ✅ Provider: 6 helpers (enabled services, firestore dbs+collections, storage, rtdb, auth config),
   `serviceInventory` no project, recursos novos (`firebase-firestore`/`-storage-bucket`/`-rtdb`),
   guard de health. 6 testes novos verdes (18/18 no arquivo firebase).
-- ⬜ UI: `<ServiceInventoryPanel>` na tela do recurso `firebase-project` (grid de cards por serviço).
+- ✅ UI: `<ServiceInventoryPanel>` na tela do recurso `firebase-project` (grid de cards por serviço).
+  Build-verificada (`next build` OK). Visual com dado real pendente env viva.
 
 ## E — Auto-deploy (feito x ativação)
 - ✅ `src/app/api/health/route.ts` (probe público), middleware libera `/api/health`.

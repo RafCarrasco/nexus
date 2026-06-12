@@ -7,6 +7,11 @@ import { Button } from '@/ui/components/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { formatMoney } from '@/lib/money';
 import { DeleteConfirmDialog } from '@/ui/components/delete-confirm-dialog';
+import {
+  ServiceInventoryPanel,
+  type ServiceInventoryItem,
+  type ProjectAuthConfig,
+} from '@/ui/components/service-inventory-panel';
 
 export default async function ResourceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -24,6 +29,11 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
 
   const total30d = r.costSnapshots.reduce((s, c) => s + Number(c.amount), 0);
   const currency = r.costSnapshots[0]?.currency ?? 'USD';
+
+  const meta = (r.metadata ?? {}) as {
+    serviceInventory?: ServiceInventoryItem[];
+    authConfig?: ProjectAuthConfig | null;
+  };
 
   return (
     <>
@@ -61,6 +71,9 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
           <CardContent className="text-2xl">{formatMoney(total30d, currency)}</CardContent>
         </Card>
       </div>
+      {r.kind === 'firebase-project' && meta.serviceInventory && (
+        <ServiceInventoryPanel inventory={meta.serviceInventory} authConfig={meta.authConfig} />
+      )}
       <section className="p-6">
         <h2 className="mb-2 text-lg font-semibold">Tenants</h2>
         {r.tenants.length === 0 && <p className="text-sm text-zinc-500">Nenhum tenant descoberto.</p>}
