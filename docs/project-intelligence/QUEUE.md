@@ -73,5 +73,8 @@ Ver `docs/roadmap.md` (16 itens já priorizados).
   (connection create/delete, collector.run, resource/workspace/client delete) + página
   `/settings/audit` + link no nav. 3 testes do helper. (Faltam: tenant.delete, incident.patch — triviais.)
 - ✅ **#6 Dark mode** — JÁ ESTAVA PRONTO (ThemeProvider no layout + ThemeToggle + classes `dark:`).
-- ⬜ Restantes (#1 uptime checks, #2 alerting rules, #3 bulk incidentes, #4 saved filters, #7+ ...).
-  uptime checks já têm base: `/api/health` público + `probePublicUrl`.
+- ✅ **#10 Cost forecasting** — `src/lib/forecast.ts` `forecastCost` (regressão linear, 30d) + card na cost page.
+- ✅ **#9 Compare-period** — `compareCostPeriods` (30d vs anteriores, delta%) + card na cost page.
+- ⬜ Restantes (#1 uptime checks, #2 alerting rules, #3 bulk incidentes, #4 saved filters, #7 canais notif,
+  #8 status page pública, #11 runbooks, ...). uptime já têm base: `/api/health` + `probePublicUrl`.
+- ⬜ **C retry/backoff** (adiado — baixo ROI + risco de prolongar o lock do collector).

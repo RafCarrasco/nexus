@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { forecastCost } from '@/lib/forecast';
+import { forecastCost, compareCostPeriods } from '@/lib/forecast';
 
 describe('forecastCost', () => {
   it('returns null for no data', () => {
@@ -41,5 +41,31 @@ describe('forecastCost', () => {
     const a = forecastCost([{ date: '2026-06-03', amount: 3 }, { date: '2026-06-01', amount: 1 }, { date: '2026-06-02', amount: 2 }], 3)!;
     expect(a.trend).toBe('up');
     expect(a.slopePerDay).toBeCloseTo(1);
+  });
+});
+
+describe('compareCostPeriods', () => {
+  it('returns null for no data', () => {
+    expect(compareCostPeriods([])).toBeNull();
+  });
+
+  it('compares the recent period vs the previous one', () => {
+    // 2-day periods. Recent (06-03..06-04) = 10+10=20; previous (06-01..06-02) = 5+5=10.
+    const points = [
+      { date: '2026-06-01', amount: 5 },
+      { date: '2026-06-02', amount: 5 },
+      { date: '2026-06-03', amount: 10 },
+      { date: '2026-06-04', amount: 10 },
+    ];
+    const c = compareCostPeriods(points, 2)!;
+    expect(c.current).toBeCloseTo(20);
+    expect(c.previous).toBeCloseTo(10);
+    expect(c.deltaPct).toBeCloseTo(100);
+  });
+
+  it('returns null delta when previous period is empty', () => {
+    const c = compareCostPeriods([{ date: '2026-06-03', amount: 10 }, { date: '2026-06-04', amount: 10 }], 2)!;
+    expect(c.previous).toBe(0);
+    expect(c.deltaPct).toBeNull();
   });
 });
