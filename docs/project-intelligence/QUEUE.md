@@ -10,7 +10,7 @@ Branch: `feat/project-intelligence`. **Não dar push em `main` até o pipeline +
 |---|--------|--------|------|
 | A | Firebase profundo (inventário de serviços) | ✅ done (provider + UI) | `docs/superpowers/specs/2026-06-12-project-intelligence-design.md` |
 | E | Auto-deploy (GitHub Actions CI-gated + SSH) | ✅ arquivos prontos / ativação pendente (Rafael) | `docs/auto-deploy.md` |
-| B | Observabilidade de agentes (n8n + OpenClaw) | n8n dados ✅ / UI+OpenClaw pendente | inline abaixo |
+| B | Observabilidade de agentes (n8n + OpenClaw) | n8n ✅ (dados+UI+incidente) / token-custo+OpenClaw pendente | inline abaixo |
 | C | Parrudão (hardening: segurança, resiliência, testes) | ⬜ fila | a escrever |
 | D | Roadmap breadth (uptime, alerting, status page, forecast, dark mode...) | ⬜ fila | `docs/roadmap.md` |
 
@@ -33,12 +33,12 @@ Branch: `feat/project-intelligence`. **Não dar push em `main` até o pipeline +
   (window/success/error/errorRate/avgDurationMs/lastErrorAt/lastRunAt) + `recentTokens`
   (parser best-effort de tokens de IA da última execução). `fetchWithTimeout` em todas as
   chamadas. Só workflows ativos (poupa calls). 4 testes novos.
-- ⬜ **n8n UI:** painel "Agentes / execuções" na tela do recurso `n8n-workflow` (taxa de erro,
-  duração média, tokens, último erro) — additive como o ServiceInventoryPanel.
+- ✅ **n8n UI:** `<AgentStatsPanel>` na tela do recurso `n8n-workflow` (janela, taxa de erro,
+  duração média, tokens IA, último erro). Build-verificado.
+- ✅ **auto-incidente por pico de falha:** n8n getHealth migrado pro `execStats` (errorRate sobre
+  janela de 20) → collector abre incidente quando agente começa a falhar. Teste "down" novo.
 - ⬜ **token → custo (R$/USD):** precisa tabela de preço por modelo; `getDailyCost` do n8n segue
   null até isso. Mapear modelo→preço (OpenAI/Anthropic/etc).
-- ⬜ **auto-incidente por pico de falha:** usar `errorRate` do execStats pra abrir incidente
-  (hoje getHealth ainda usa "erros nos últimos 5"). Migrar health pro execStats.
 - ⬜ **OpenClaw: bloqueado** — Rafael não sabe o que expõe (REST? logs? só container?).
   Investigar via Chrome/SSH quando der acesso. Fallback: docker provider (container health) + logs.
 

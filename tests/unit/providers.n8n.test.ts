@@ -169,4 +169,24 @@ describe('N8nProvider agent stats', () => {
     );
     expect(hitExecutions).toBe(false);
   });
+
+  it('getHealth is down when the recent error rate is high', async () => {
+    fetchMock.mockImplementation(
+      routeFetch([
+        ['/workflows/42', { id: '42', active: true }],
+        [
+          'limit=20',
+          {
+            data: [
+              { id: 'a', status: 'error', startedAt: '2026-06-01T03:00:00.000Z' },
+              { id: 'b', status: 'error', startedAt: '2026-06-01T02:00:00.000Z' },
+              { id: 'c', status: 'success', startedAt: '2026-06-01T01:00:00.000Z' },
+            ],
+          },
+        ],
+      ]),
+    );
+    const h = await N8nProvider.getHealth(conn, 'workflow:42');
+    expect(h.status).toBe('down'); // 2/3 ≈ 67% >= 50%
+  });
 });

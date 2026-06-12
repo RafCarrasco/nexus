@@ -12,6 +12,7 @@ import {
   type ServiceInventoryItem,
   type ProjectAuthConfig,
 } from '@/ui/components/service-inventory-panel';
+import { AgentStatsPanel, type N8nExecStats } from '@/ui/components/agent-stats-panel';
 
 export default async function ResourceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -33,6 +34,8 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
   const meta = (r.metadata ?? {}) as {
     serviceInventory?: ServiceInventoryItem[];
     authConfig?: ProjectAuthConfig | null;
+    execStats?: N8nExecStats | null;
+    recentTokens?: number;
   };
 
   return (
@@ -73,6 +76,9 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
       </div>
       {r.kind === 'firebase-project' && meta.serviceInventory && (
         <ServiceInventoryPanel inventory={meta.serviceInventory} authConfig={meta.authConfig} />
+      )}
+      {r.kind === 'n8n-workflow' && meta.execStats && (
+        <AgentStatsPanel stats={meta.execStats} recentTokens={meta.recentTokens} />
       )}
       <section className="p-6">
         <h2 className="mb-2 text-lg font-semibold">Tenants</h2>

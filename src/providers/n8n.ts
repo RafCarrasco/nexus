@@ -201,18 +201,15 @@ export const N8nProvider: Provider = {
       return { status: 'unknown', message: 'inativo' };
     }
 
-    const execRes = await fetchWithTimeout(
-      `${baseUrl(conn)}/api/v1/executions?workflowId=${wfId}&limit=5`,
-      { headers: headers(conn) },
-    );
-    if (!execRes.ok) return { status: 'unknown', message: `executions ${execRes.status}` };
-    const body = (await execRes.json()) as { data?: N8nExecution[] } | N8nExecution[];
-    const executions: N8nExecution[] = Array.isArray(body) ? body : (body.data ?? []);
-
-    const errorCount = executions.filter((e) => e.status === 'error').length;
-    if (errorCount === 0) return { status: 'ok' };
-    if (errorCount <= 2) return { status: 'degraded', message: `${errorCount} erros nos últimos 5` };
-    return { status: 'down', message: `${errorCount} erros nos últimos 5` };
+    // Health from the recent error rate — drives the collector's auto-incident on
+    // agent-run failure spikes (a workflow that starts erroring opens an incident).
+    const stats = await getExecutionStats(conn, wfId, 20);
+    if (!stats || stats.window === 0) return { status: 'ok' };
+    if (stats.errorRate === 0) return { status: 'ok' };
+    const pct = Math.round(stats.errorRate * 100);
+    const detail = `erro ${pct}% (${stats.error}/${stats.success + stats.error})`;
+    if (stats.errorRate < 0.5) return { status: 'degraded', message: detail };
+    return { status: 'down', message: detail };
   },
 
   async listTenants(): Promise<TenantDTO[]> {
