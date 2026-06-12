@@ -67,4 +67,10 @@ Branch: `feat/project-intelligence`. **Não dar push em `main` até o pipeline +
 - **npm audit**: 13 moderate (firebase-admin/next/prisma chains), 0 high/critical — ticket à parte.
 
 ## D — Roadmap breadth
-Ver `docs/roadmap.md` (16 itens já priorizados). Puxar daqui quando A/B/C zerarem.
+Ver `docs/roadmap.md` (16 itens já priorizados).
+- ✅ **#5 Audit log** — `src/lib/audit.ts` (`writeAudit`, best-effort) gravando em 6 mutações
+  (connection create/delete, collector.run, resource/workspace/client delete) + página
+  `/settings/audit` + link no nav. 3 testes do helper. (Faltam: tenant.delete, incident.patch — triviais.)
+- ✅ **#6 Dark mode** — JÁ ESTAVA PRONTO (ThemeProvider no layout + ThemeToggle + classes `dark:`).
+- ⬜ Restantes (#1 uptime checks, #2 alerting rules, #3 bulk incidentes, #4 saved filters, #7+ ...).
+  uptime checks já têm base: `/api/health` público + `probePublicUrl`.

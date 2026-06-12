@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/db/client';
 import { encrypt } from '@/crypto/vault';
 import { authOrE2E } from '@/auth/config';
+import { writeAudit } from '@/lib/audit';
 import { getProvider, listProviderTypes } from '@/providers/registry';
 
 const createSchema = z.object({
@@ -62,5 +63,6 @@ export async function POST(req: Request) {
     },
     select: { id: true },
   });
+  await writeAudit({ userId: user.id, action: 'connection.create', target: row.id, payload: { name, type } });
   return NextResponse.json(row, { status: 201 });
 }

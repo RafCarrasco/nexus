@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, LayoutGrid, Boxes, AlertTriangle, Settings, TrendingUp } from 'lucide-react';
+import { Home, LayoutGrid, Boxes, AlertTriangle, Settings, TrendingUp, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const mainItems = [
@@ -13,6 +13,7 @@ const mainItems = [
 ] as const;
 
 const settingsItems = [
+  { href: '/settings/audit',   label: 'Auditoria',     Icon: History },
   { href: '/settings/clients', label: 'Configurações', Icon: Settings },
 ] as const;
 
