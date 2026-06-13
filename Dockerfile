@@ -24,6 +24,9 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
+# prisma.config.ts (Prisma 7) holds the datasource url for the CLI; without it
+# `prisma migrate deploy` errors "datasource.url property is required".
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 # Full node_modules from the builder, overlaid on the standalone trace. It includes
 # the generated Prisma client AND the complete Prisma CLI dependency closure. The
 # Next.js standalone trace prunes the CLI's transitive deps (effect, fast-check,
