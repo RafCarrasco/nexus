@@ -1,10 +1,8 @@
-import Link from 'next/link';
 import { CheckCircle2 } from 'lucide-react';
 import { prisma } from '@/db/client';
 import { PageHeader } from '@/ui/components/page-header';
-import { Badge } from '@/ui/components/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
-import { ResolveButton } from './resolve-button';
+import { BulkResolveBar, type OpenRow } from './bulk-resolve-bar';
 
 export default async function IncidentsPage() {
   const open = await prisma.incident.findMany({
@@ -18,6 +16,16 @@ export default async function IncidentsPage() {
     take: 50,
     include: { resource: true, uptimeCheck: true, alertRule: true },
   });
+  const openRows: OpenRow[] = open.map((i) => ({
+    id: i.id,
+    openedAt: i.openedAt.toISOString().slice(0, 19).replace('T', ' '),
+    name: i.resource?.name ?? i.uptimeCheck?.name ?? i.alertRule?.name ?? '—',
+    href: i.resource ? `/resources/${i.resourceId}` : i.uptimeCheck ? '/uptime' : '/alerts',
+    type: i.type,
+    severity: i.severity,
+    message: i.message,
+  }));
+
   if (open.length === 0 && recent.length === 0) {
     return (
       <div className="space-y-8">
@@ -45,57 +53,13 @@ export default async function IncidentsPage() {
         <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
           Abertos <span className="text-zinc-400 font-normal">({open.length})</span>
         </h2>
-        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Aberto em</TableHead>
-                <TableHead>Recurso</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Severidade</TableHead>
-                <TableHead>Mensagem</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {open.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-zinc-400 py-8">
-                    Sem incidentes.
-                  </TableCell>
-                </TableRow>
-              )}
-              {open.map((i) => (
-                <TableRow key={i.id}>
-                  <TableCell className="text-zinc-500 dark:text-zinc-400 text-xs">
-                    {i.openedAt.toISOString().slice(0, 19).replace('T', ' ')}
-                  </TableCell>
-                  <TableCell>
-                    {i.resource ? (
-                      <Link href={`/resources/${i.resourceId}` as never} className="font-medium text-zinc-900 dark:text-zinc-100 hover:text-violet-600 transition-colors">
-                        {i.resource.name}
-                      </Link>
-                    ) : i.uptimeCheck ? (
-                      <Link href={'/uptime' as never} className="font-medium text-zinc-900 dark:text-zinc-100 hover:text-violet-600 transition-colors">
-                        {i.uptimeCheck.name}
-                      </Link>
-                    ) : (
-                      <Link href={'/alerts' as never} className="font-medium text-zinc-900 dark:text-zinc-100 hover:text-violet-600 transition-colors">
-                        {i.alertRule?.name ?? '—'}
-                      </Link>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-zinc-500 dark:text-zinc-400">{i.type}</TableCell>
-                  <TableCell>
-                    <Badge variant={i.severity === 'crit' ? 'destructive' : 'default'}>{i.severity}</Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[420px] truncate text-zinc-600 dark:text-zinc-400">{i.message}</TableCell>
-                  <TableCell><ResolveButton id={i.id} /></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        {open.length === 0 ? (
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-8 text-center text-sm text-zinc-400 shadow-sm">
+            Sem incidentes abertos.
+          </div>
+        ) : (
+          <BulkResolveBar open={openRows} />
+        )}
       </section>
 
       {/* Recently resolved */}
