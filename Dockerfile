@@ -24,21 +24,13 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
-# Prisma legacy generator output sits under node_modules in the builder image,
-# but standalone tracing already includes what is needed for runtime. Copy
-# any missed engine binaries to be safe.
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-# Prisma 7 CLI transitive deps not picked up by Next.js standalone tracing.
-# @prisma/config -> effect -> fast-check -> pure-rand. All four are needed for
-# `prisma migrate deploy`/`resolve` to run from this image (the web container is
-# where the deploy applies migrations).
-COPY --from=builder /app/node_modules/effect ./node_modules/effect
-COPY --from=builder /app/node_modules/fast-check ./node_modules/fast-check
-COPY --from=builder /app/node_modules/pure-rand ./node_modules/pure-rand
-# .bin contains the `prisma` symlink that `npx prisma` resolves to.
-COPY --from=builder /app/node_modules/.bin ./node_modules/.bin
+# Full node_modules from the builder, overlaid on the standalone trace. It includes
+# the generated Prisma client AND the complete Prisma CLI dependency closure. The
+# Next.js standalone trace prunes the CLI's transitive deps (effect, fast-check,
+# pure-rand, pathe, @prisma/dev, ...), which breaks `prisma migrate deploy` at deploy
+# time. `prisma` is a devDependency, so we keep devDeps (no production prune). Larger
+# image, but migrations run reliably without cherry-picking each transitive dep.
+COPY --from=builder /app/node_modules ./node_modules
 ENV PATH=/app/node_modules/.bin:$PATH
 USER nexus
 EXPOSE 3000
