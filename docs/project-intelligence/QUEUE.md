@@ -9,7 +9,7 @@ Branch: `feat/project-intelligence`. **Não dar push em `main` até o pipeline +
 | # | Frente | Estado | Spec |
 |---|--------|--------|------|
 | A | Firebase profundo (inventário de serviços) | ✅ done (provider + UI) | `docs/superpowers/specs/2026-06-12-project-intelligence-design.md` |
-| E | Auto-deploy (GitHub Actions CI-gated + SSH) | ✅ arquivos prontos / ativação pendente (Rafael) | `docs/auto-deploy.md` |
+| E | Auto-deploy (GitHub Actions CI-gated + SSH) | ✅ ATIVADO + prod no ar (2026-06-12) | `docs/auto-deploy.md` |
 | B | Observabilidade de agentes (n8n + OpenClaw) | n8n ✅ (dados+UI+incidente) / token-custo+OpenClaw pendente | inline abaixo |
 | C | Parrudão (hardening: segurança, resiliência, testes) | ⬜ fila | a escrever |
 | D | Roadmap breadth (uptime, alerting, status page, forecast, dark mode...) | ⬜ fila | `docs/roadmap.md` |
@@ -26,7 +26,12 @@ Branch: `feat/project-intelligence`. **Não dar push em `main` até o pipeline +
 - ✅ `scripts/deploy.sh` reescrito: `prisma migrate deploy` + health gate + rollback.
 - ✅ `.github/workflows/ci.yml` (lint+typecheck+testes com Postgres) e `deploy.yml` (workflow_run, SSH).
 - ✅ doc `auto-deploy.md` reescrito; rascunho n8n preservado em `auto-deploy-n8n-legacy.md`.
-- ⬜ **Ativação (Rafael):** deploy key SSH + secrets GitHub + symlink do script no VPS. Checklist no doc.
+- ✅ **ATIVADO 2026-06-12:** deploy key SSH (via hPanel SSH Keys) + secrets GitHub (VPS_HOST/USER/SSH_KEY)
+  + symlink no VPS. Prod (`nexus.srv1625247.hstgr.cloud`) atualizado de `987c7c4` → main com A+B+C+D+E.
+- ✅ **Fixes de deploy descobertos no 1º deploy real:** health gate via `docker compose exec` em
+  `127.0.0.1` (não host/`localhost` — porta atrás do Traefik + IPv6); Dockerfile com node_modules
+  completo + `prisma.config.ts` (CLI do Prisma 7 precisa pro `migrate deploy`); baseline das 4
+  migrations no prod (tabela `_prisma_migrations` não existia — deploy antigo aplicava SQL na mão).
 
 ## B — Observabilidade de agentes
 - ✅ **n8n camada de dados:** provider enriquece workflows ativos com `execStats`
