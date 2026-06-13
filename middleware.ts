@@ -8,6 +8,8 @@ export default auth((req) => {
   const isPublic =
     url.pathname.startsWith('/login') ||
     url.pathname.startsWith('/api/auth') ||
+    // Public per-workspace status pages (no login) for client-facing status.
+    url.pathname.startsWith('/status') ||
     // Exact match, not prefix: a future /api/health-* route must not inherit public access.
     url.pathname === '/api/health';
   if (!isAuth && !isPublic) {

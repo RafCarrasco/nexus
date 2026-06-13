@@ -80,6 +80,14 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
             <StatusPill status={workspaceStatus} size="md" count={openInc} />
           </div>
           {w.description && <div className="text-sm text-zinc-500 dark:text-zinc-400">{w.description}</div>}
+          <a
+            href={`/status/${w.slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 inline-block text-xs text-violet-600 hover:underline dark:text-violet-400"
+          >
+            🔗 Página de status pública
+          </a>
         </div>
         <DeleteConfirmDialog
           trigger={
