@@ -26,7 +26,18 @@ export function isSafePublicHttpUrl(raw: string): boolean {
   if (h === 'localhost' || h.endsWith('.local') || h.endsWith('.internal')) return false;
   if (/^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(h)) return false;
   if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return false;
-  if (h === '::1' || h === '[::1]') return false;
+  // IPv6: URL.hostname keeps the surrounding brackets for IPv6 literals. Strip them (and
+  // any %zone id), then block loopback (::1), unspecified (::), unique-local (fc00::/7),
+  // link-local (fe80::/10) and IPv4-mapped (::ffff:a.b.c.d, a known SSRF-bypass vector).
+  // Guard on the ':' so plain public domains like "fc-foo.com" can never match.
+  const ip6 = h.startsWith('[') ? h.slice(1, -1) : h;
+  if (ip6.includes(':')) {
+    const a = ip6.replace(/%.*$/, '');
+    if (a === '::1' || a === '::') return false;
+    if (/^(fc|fd)/.test(a)) return false; // unique-local fc00::/7
+    if (/^fe[89ab]/.test(a)) return false; // link-local fe80::/10
+    if (/^::ffff:/.test(a)) return false; // IPv4-mapped
+  }
   return true;
 }
 

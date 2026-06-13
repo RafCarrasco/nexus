@@ -72,6 +72,9 @@ export function analyzeWorkflow(nodes: N8nNode[]): FlowInsights {
   let trigger: FlowInsights['trigger'] = 'none';
   if (types.some((t) => /webhook/i.test(t))) trigger = 'webhook';
   else if (types.some((t) => /(schedule|cron|interval)/i.test(t)) && types.some(isTrigger)) trigger = 'schedule';
+  // Legacy schedule nodes (n8n-nodes-base.cron / .interval) lack the isTrigger flag, so the
+  // branch above misses them — classify any schedule/cron/interval node type as 'schedule'.
+  else if (types.some((t) => /(schedule|cron|interval)/i.test(t))) trigger = 'schedule';
   else if (types.some((t) => /manualTrigger/i.test(t))) trigger = 'manual';
   else if (types.some(isTrigger)) trigger = 'other';
 

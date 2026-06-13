@@ -26,6 +26,21 @@ describe('isSafePublicHttpUrl', () => {
     expect(isSafePublicHttpUrl('http://169.254.169.254/')).toBe(false);
     expect(isSafePublicHttpUrl('http://svc.internal/')).toBe(false);
   });
+
+  it('rejects IPv6 loopback / unique-local / link-local / v4-mapped literals', () => {
+    expect(isSafePublicHttpUrl('http://[::1]/')).toBe(false); // loopback
+    expect(isSafePublicHttpUrl('http://[::]/')).toBe(false); // unspecified
+    expect(isSafePublicHttpUrl('http://[fd00::1]/')).toBe(false); // unique-local
+    expect(isSafePublicHttpUrl('http://[fc00::1]/')).toBe(false); // unique-local
+    expect(isSafePublicHttpUrl('http://[fe80::1]/')).toBe(false); // link-local
+    expect(isSafePublicHttpUrl('http://[::ffff:127.0.0.1]/')).toBe(false); // v4-mapped loopback
+  });
+
+  it('still accepts public domains that merely start with fc/fd/fe', () => {
+    expect(isSafePublicHttpUrl('https://fc-barcelona.com')).toBe(true);
+    expect(isSafePublicHttpUrl('https://fdis.example.org')).toBe(true);
+    expect(isSafePublicHttpUrl('https://feedly.com')).toBe(true);
+  });
 });
 
 describe('probePublicUrl', () => {

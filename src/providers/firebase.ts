@@ -1,7 +1,8 @@
-import { initializeApp, cert, getApps, deleteApp, type App } from 'firebase-admin/app';
+import { initializeApp, cert, getApps, type App } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { GoogleAuth } from 'google-auth-library';
-import { fetchWithTimeout, isSafePublicHttpUrl } from '@/lib/http';
+import { fetchWithTimeout, probePublicUrl } from '@/lib/http';
+import { log } from '@/lib/logger';
 import type { Provider, ConnectionView, ResourceDTO, CostDTO, HealthDTO, TenantDTO } from './types';
 
 type SAJson = {
@@ -54,14 +55,18 @@ async function listHostingSites(conn: ConnectionView): Promise<HostingSite[]> {
   try {
     const token = await googleAccessToken(conn, ['https://www.googleapis.com/auth/firebase']);
     const pid = projectId(conn);
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://firebasehosting.googleapis.com/v1beta1/projects/${pid}/sites`,
       { headers: { Authorization: `Bearer ${token}` } },
     );
-    if (!res.ok) return [];
+    if (!res.ok) {
+      log.warn('firebase listHostingSites !ok', { status: res.status });
+      return [];
+    }
     const json = (await res.json()) as { sites?: HostingSite[] };
     return json.sites ?? [];
-  } catch {
+  } catch (e) {
+    log.warn('firebase listHostingSites failed', { err: (e as Error).message });
     return [];
   }
 }
@@ -77,14 +82,18 @@ async function listCloudFunctions(conn: ConnectionView): Promise<CloudFunction[]
   try {
     const token = await googleAccessToken(conn, ['https://www.googleapis.com/auth/cloud-platform.read-only']);
     const pid = projectId(conn);
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://cloudfunctions.googleapis.com/v2/projects/${pid}/locations/-/functions`,
       { headers: { Authorization: `Bearer ${token}` } },
     );
-    if (!res.ok) return [];
+    if (!res.ok) {
+      log.warn('firebase listCloudFunctions !ok', { status: res.status });
+      return [];
+    }
     const json = (await res.json()) as { functions?: CloudFunction[] };
     return json.functions ?? [];
-  } catch {
+  } catch (e) {
+    log.warn('firebase listCloudFunctions failed', { err: (e as Error).message });
     return [];
   }
 }
@@ -161,7 +170,10 @@ async function listFirestoreTenantDocs(conn: ConnectionView, collection: string)
       `https://firestore.googleapis.com/v1/projects/${pid}/databases/(default)/documents/${encodeURIComponent(collection)}?pageSize=200`,
       { headers: { Authorization: `Bearer ${token}` } },
     );
-    if (!res.ok) return [];
+    if (!res.ok) {
+      log.warn('firebase listFirestoreTenantDocs !ok', { status: res.status });
+      return [];
+    }
     const json = (await res.json()) as { documents?: FsDoc[] };
     return (json.documents ?? []).map((d) => {
       const id = d.name.split('/').pop() ?? d.name;
@@ -170,7 +182,8 @@ async function listFirestoreTenantDocs(conn: ConnectionView, collection: string)
         f.name?.stringValue ?? f.displayName?.stringValue ?? f.title?.stringValue ?? f.nome?.stringValue ?? id;
       return { externalId: id, displayName };
     });
-  } catch {
+  } catch (e) {
+    log.warn('firebase listFirestoreTenantDocs failed', { err: (e as Error).message });
     return [];
   }
 }
@@ -449,21 +462,18 @@ export const FirebaseProvider: Provider = {
 
     // Hosting resources: probe the defaultUrl
     if (externalId.startsWith('hosting:')) {
-      try {
-        // externalId = hosting:projects/<pid>/sites/<siteId>
-        // We need to find the defaultUrl — fetch sites again (cached by underlying SDK in practice)
-        const sites = await listHostingSites(conn);
-        const siteName = externalId.slice('hosting:'.length);
-        const site = sites.find((s) => s.name === siteName);
-        const url = site?.defaultUrl;
-        if (!url) return { status: 'unknown', message: 'no defaultUrl' };
-        if (!isSafePublicHttpUrl(url)) return { status: 'unknown', message: 'unsafe defaultUrl' };
-        const res = await fetchWithTimeout(url, { method: 'HEAD' });
-        if (res.ok) return { status: 'ok' };
-        return { status: 'degraded', message: `HTTP ${res.status}` };
-      } catch (e) {
-        return { status: 'down', message: (e as Error).message };
-      }
+      // externalId = hosting:projects/<pid>/sites/<siteId>
+      // We need to find the defaultUrl — fetch sites again (cached by underlying SDK in practice)
+      const sites = await listHostingSites(conn);
+      const siteName = externalId.slice('hosting:'.length);
+      const site = sites.find((s) => s.name === siteName);
+      const url = site?.defaultUrl;
+      if (!url) return { status: 'unknown', message: 'no defaultUrl' };
+      // probePublicUrl applies the SSRF guard and returns 'ok' (2xx), 'degraded' (non-2xx
+      // or network error), or 'unknown' (unsafe url). A single failed HEAD degrades rather
+      // than hard-paging as 'down'. Its {ok|degraded|unknown} vocabulary is a subset of
+      // HealthDTO's, so the result maps directly.
+      return probePublicUrl(url);
     }
 
     // Project resource: probe Auth
@@ -526,8 +536,11 @@ async function getDailyCostViaMonitoring(args: {
       'aggregation.perSeriesAligner': 'ALIGN_SUM',
     });
     const url = `https://monitoring.googleapis.com/v3/projects/${projectId}/timeSeries?${params}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) return null;
+    const res = await fetchWithTimeout(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) {
+      log.warn('firebase getDailyCost monitoring !ok', { status: res.status });
+      return null;
+    }
     const json = (await res.json()) as {
       timeSeries?: Array<{
         points?: Array<{ value?: { doubleValue?: number } }>;
@@ -543,7 +556,8 @@ async function getDailyCostViaMonitoring(args: {
     }
     if (total === 0) return null;
     return { amount: total, currency, source: 'cloud-monitoring' };
-  } catch {
+  } catch (e) {
+    log.warn('firebase getDailyCost monitoring failed', { err: (e as Error).message });
     return null;
   }
 }
@@ -558,6 +572,18 @@ async function getDailyCostViaBigQuery(args: {
 }): Promise<(CostDTO & { breakdown?: Array<{ service: string; amount: number }> }) | null> {
   const { conn, projectId, bqProject, bqDataset, billingAccountId, date } = args;
   try {
+    // SQL-injection guard: bqProject / bqDataset / billingAccountId are config-derived
+    // identifiers string-interpolated into the query below. Even though they come from the
+    // connection's own admin-configured service-account config (self-injection), validate
+    // them against a single char allowlist before interpolation. Billing account ids use
+    // letters/digits/hyphens; dataset/project use letters/digits/underscores/hyphens — all
+    // covered by [A-Za-z0-9_-]. Any failure → skip the query and return the empty shape.
+    const idRe = /^[A-Za-z0-9_-]+$/;
+    if (!idRe.test(bqProject) || !idRe.test(bqDataset) || !idRe.test(billingAccountId)) {
+      log.warn('firebase getDailyCost bigquery invalid identifier', { bqProject, bqDataset });
+      return null;
+    }
+
     const token = await googleAccessToken(conn, ['https://www.googleapis.com/auth/bigquery.readonly']);
     const tableName = `gcp_billing_export_v1_${billingAccountId.replace(/-/g, '_')}`;
     const dayIso = date.toISOString().slice(0, 10);
@@ -575,17 +601,24 @@ async function getDailyCostViaBigQuery(args: {
     `;
 
     const url = `https://bigquery.googleapis.com/bigquery/v2/projects/${bqProject}/queries`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-      body: JSON.stringify({
-        query: sql,
-        useLegacySql: false,
-        timeoutMs: 30000,
-        location: 'US',
-      }),
-    });
-    if (!res.ok) return null;
+    const res = await fetchWithTimeout(
+      url,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          query: sql,
+          useLegacySql: false,
+          timeoutMs: 30000,
+          location: 'US',
+        }),
+      },
+      35000,
+    );
+    if (!res.ok) {
+      log.warn('firebase getDailyCost bigquery !ok', { status: res.status });
+      return null;
+    }
     const json = (await res.json()) as {
       rows?: Array<{ f: Array<{ v: string }> }>;
       schema?: { fields: Array<{ name: string }> };
@@ -605,14 +638,8 @@ async function getDailyCostViaBigQuery(args: {
     }
     if (total === 0) return null;
     return { amount: total, currency, source: 'bigquery', breakdown };
-  } catch {
+  } catch (e) {
+    log.warn('firebase getDailyCost bigquery failed', { err: (e as Error).message });
     return null;
   }
-}
-
-// dispose helper for tests
-export async function disposeFirebaseApp(conn: ConnectionView): Promise<void> {
-  const name = `nexus-${conn.id}`;
-  const app = getApps().find((a) => a.name === name);
-  if (app) await deleteApp(app);
 }
