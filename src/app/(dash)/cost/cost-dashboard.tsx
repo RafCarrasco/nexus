@@ -104,16 +104,16 @@ export function CostDashboard({
 
   if (!hasData) {
     return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-12 text-center space-y-3 shadow-sm">
-        <Info className="h-10 w-10 text-zinc-300 mx-auto" />
-        <h3 className="text-base font-semibold text-zinc-900">Sem dados de custo ainda</h3>
-        <p className="text-sm text-zinc-600 max-w-md mx-auto">
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-12 text-center space-y-3 shadow-sm">
+        <Info className="h-10 w-10 text-zinc-300 dark:text-zinc-600 mx-auto" />
+        <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Sem dados de custo ainda</h3>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400 max-w-md mx-auto">
           Para o gráfico aparecer, o billing export do Cloud Billing precisa estar habilitado pro
           Cloud Monitoring. É gratuito e leva 5 minutos.
         </p>
         <Link
           href={'/docs/cost-tracking' as never}
-          className="inline-flex items-center gap-1 text-sm text-violet-600 hover:underline"
+          className="inline-flex items-center gap-1 text-sm text-violet-600 dark:text-violet-400 hover:underline"
         >
           Como habilitar
           <ChevronRight className="h-3.5 w-3.5" />
@@ -126,7 +126,7 @@ export function CostDashboard({
     <div className="space-y-6">
       {/* Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1 rounded-full border border-zinc-200 bg-white p-1 shadow-sm">
+        <div className="flex items-center gap-1 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-1 shadow-sm">
           {RANGES.map((r) => (
             <button
               key={r}
@@ -134,22 +134,22 @@ export function CostDashboard({
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
                 range === r
                   ? 'bg-violet-600 text-white shadow-sm'
-                  : 'text-zinc-600 hover:bg-zinc-50'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
               }`}
             >
               {RANGE_LABELS[r]}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-1 rounded-full border border-zinc-200 bg-white p-1 shadow-sm">
+        <div className="flex items-center gap-1 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-1 shadow-sm">
           {MODES.map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
                 mode === m
-                  ? 'bg-zinc-900 text-white shadow-sm'
-                  : 'text-zinc-600 hover:bg-zinc-50'
+                  ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-sm'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
               }`}
             >
               {MODE_LABELS[m]}
@@ -159,7 +159,7 @@ export function CostDashboard({
       </div>
 
       {/* Chart */}
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm">
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
@@ -254,11 +254,11 @@ export function CostDashboard({
       </div>
 
       {/* Per-workspace breakdown */}
-      <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
-        <div className="border-b border-zinc-100 px-6 py-4">
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
+        <div className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4">
           <h3 className="text-base font-semibold tracking-tight">Por aplicativo</h3>
         </div>
-        <ul className="divide-y divide-zinc-100">
+        <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
           {workspaces.map((w) => {
             const wPoints = filtered.filter((p) => p.workspaceId === w.id);
             const wTotal = wPoints.reduce((s, p) => s + p.amount, 0);
@@ -281,16 +281,16 @@ export function CostDashboard({
               .map(([, v]) => v);
 
             return (
-              <li key={w.id} className="flex items-center gap-4 px-6 py-3 hover:bg-zinc-50">
+              <li key={w.id} className="flex items-center gap-4 px-6 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800">
                 <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
                 <Link
                   href={`/workspaces/${w.id}` as never}
-                  className="flex-1 min-w-0 text-sm font-medium text-zinc-900 truncate hover:text-violet-600"
+                  className="flex-1 min-w-0 text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate hover:text-violet-600 dark:hover:text-violet-400"
                 >
                   {w.name}
                 </Link>
                 <MiniSpark values={sparkData} color={color} />
-                <div className="text-sm font-semibold text-zinc-900 w-24 text-right">
+                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 w-24 text-right">
                   {formatMoney(wTotal, currency)}
                 </div>
                 <DeltaBadge value={delta} />
@@ -305,10 +305,10 @@ export function CostDashboard({
 
 function Kpi({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <div className="text-sm text-zinc-500">{label}</div>
-      <div className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900">{value}</div>
-      {sub && <div className="text-xs text-zinc-400 mt-0.5">{sub}</div>}
+    <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-sm">
+      <div className="text-sm text-zinc-500 dark:text-zinc-400">{label}</div>
+      <div className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{value}</div>
+      {sub && <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">{sub}</div>}
     </div>
   );
 }
@@ -331,7 +331,7 @@ function MiniSpark({ values, color }: { values: number[]; color: string }) {
 function DeltaBadge({ value }: { value: number }) {
   if (Math.abs(value) < 0.5) {
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-zinc-500 w-16 shrink-0">
+      <span className="inline-flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400 w-16 shrink-0">
         <Minus className="h-3 w-3" /> ~0%
       </span>
     );

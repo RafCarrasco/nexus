@@ -22,10 +22,10 @@ export default async function IncidentsPage() {
     return (
       <div className="space-y-8">
         <PageHeader title="Incidentes" />
-        <div className="rounded-2xl border border-zinc-200 bg-white p-12 text-center space-y-4 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-12 text-center space-y-4 shadow-sm">
           <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
-          <h3 className="text-base font-semibold text-zinc-900">Tudo tranquilo por aqui</h3>
-          <p className="text-sm text-zinc-500 max-w-md mx-auto">
+          <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Tudo tranquilo por aqui</h3>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto">
             Nenhum incidente aberto ou resolvido. Quando algo precisar de atenção, vai aparecer aqui.
           </p>
         </div>
@@ -42,10 +42,10 @@ export default async function IncidentsPage() {
 
       {/* Open incidents */}
       <section className="space-y-3">
-        <h2 className="text-base font-semibold text-zinc-900">
+        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
           Abertos <span className="text-zinc-400 font-normal">({open.length})</span>
         </h2>
-        <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>
@@ -67,25 +67,25 @@ export default async function IncidentsPage() {
               )}
               {open.map((i) => (
                 <TableRow key={i.id}>
-                  <TableCell className="text-zinc-500 text-xs">
+                  <TableCell className="text-zinc-500 dark:text-zinc-400 text-xs">
                     {i.openedAt.toISOString().slice(0, 19).replace('T', ' ')}
                   </TableCell>
                   <TableCell>
                     {i.resource ? (
-                      <Link href={`/resources/${i.resourceId}` as never} className="font-medium text-zinc-900 hover:text-violet-600 transition-colors">
+                      <Link href={`/resources/${i.resourceId}` as never} className="font-medium text-zinc-900 dark:text-zinc-100 hover:text-violet-600 transition-colors">
                         {i.resource.name}
                       </Link>
                     ) : (
-                      <Link href={'/uptime' as never} className="font-medium text-zinc-900 hover:text-violet-600 transition-colors">
+                      <Link href={'/uptime' as never} className="font-medium text-zinc-900 dark:text-zinc-100 hover:text-violet-600 transition-colors">
                         {i.uptimeCheck?.name ?? '—'}
                       </Link>
                     )}
                   </TableCell>
-                  <TableCell className="text-zinc-500">{i.type}</TableCell>
+                  <TableCell className="text-zinc-500 dark:text-zinc-400">{i.type}</TableCell>
                   <TableCell>
                     <Badge variant={i.severity === 'crit' ? 'destructive' : 'default'}>{i.severity}</Badge>
                   </TableCell>
-                  <TableCell className="max-w-[420px] truncate text-zinc-600">{i.message}</TableCell>
+                  <TableCell className="max-w-[420px] truncate text-zinc-600 dark:text-zinc-400">{i.message}</TableCell>
                   <TableCell><ResolveButton id={i.id} /></TableCell>
                 </TableRow>
               ))}
@@ -96,8 +96,8 @@ export default async function IncidentsPage() {
 
       {/* Recently resolved */}
       <section className="space-y-3">
-        <h2 className="text-base font-semibold text-zinc-900">Resolvidos recentemente</h2>
-        <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
+        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Resolvidos recentemente</h2>
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>
@@ -117,12 +117,12 @@ export default async function IncidentsPage() {
               )}
               {recent.map((i) => (
                 <TableRow key={i.id}>
-                  <TableCell className="text-zinc-500 text-xs">
+                  <TableCell className="text-zinc-500 dark:text-zinc-400 text-xs">
                     {i.resolvedAt!.toISOString().slice(0, 19).replace('T', ' ')}
                   </TableCell>
-                  <TableCell className="font-medium text-zinc-900">{i.resource?.name ?? i.uptimeCheck?.name ?? '—'}</TableCell>
-                  <TableCell className="text-zinc-500">{i.type}</TableCell>
-                  <TableCell className="max-w-[420px] truncate text-zinc-600">{i.message}</TableCell>
+                  <TableCell className="font-medium text-zinc-900 dark:text-zinc-100">{i.resource?.name ?? i.uptimeCheck?.name ?? '—'}</TableCell>
+                  <TableCell className="text-zinc-500 dark:text-zinc-400">{i.type}</TableCell>
+                  <TableCell className="max-w-[420px] truncate text-zinc-600 dark:text-zinc-400">{i.message}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

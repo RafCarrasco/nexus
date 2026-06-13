@@ -85,22 +85,24 @@ export default async function OverviewPage() {
       {(critCount > 0 || warnCount > 0) && (
         <div
           className={`rounded-2xl border ${
-            critCount > 0 ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'
+            critCount > 0
+              ? 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/40'
+              : 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40'
           } p-4 flex items-start gap-3`}
         >
           <AlertCircle
-            className={`h-5 w-5 ${critCount > 0 ? 'text-red-600' : 'text-amber-600'} mt-0.5 shrink-0`}
+            className={`h-5 w-5 ${critCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'} mt-0.5 shrink-0`}
           />
           <div className="flex-1 min-w-0">
             <div
-              className={`text-sm font-semibold ${critCount > 0 ? 'text-red-900' : 'text-amber-900'}`}
+              className={`text-sm font-semibold ${critCount > 0 ? 'text-red-900 dark:text-red-200' : 'text-amber-900 dark:text-amber-200'}`}
             >
               {critCount > 0
                 ? `${critCount} aplicativo${critCount > 1 ? 's' : ''} em estado crítico`
                 : `${warnCount} aplicativo${warnCount > 1 ? 's' : ''} precisam de atenção`}
             </div>
             <div
-              className={`text-xs ${critCount > 0 ? 'text-red-700' : 'text-amber-700'} mt-0.5`}
+              className={`text-xs ${critCount > 0 ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300'} mt-0.5`}
             >
               Veja detalhes em{' '}
               <Link href={'/incidents' as never} className="underline">
@@ -113,8 +115,8 @@ export default async function OverviewPage() {
             href={'/incidents' as never}
             className={`text-xs font-medium shrink-0 ${
               critCount > 0
-                ? 'text-red-700 hover:text-red-900'
-                : 'text-amber-700 hover:text-amber-900'
+                ? 'text-red-700 hover:text-red-900 dark:text-red-300 dark:hover:text-red-100'
+                : 'text-amber-700 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-100'
             }`}
           >
             Ver incidentes →
@@ -123,9 +125,9 @@ export default async function OverviewPage() {
       )}
 
       {critCount === 0 && warnCount === 0 && workspaces.length > 0 && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3 flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-          <span className="text-sm text-emerald-800">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-950/40 p-3 flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <span className="text-sm text-emerald-800 dark:text-emerald-200">
             Tudo funcionando normalmente em todos os aplicativos.
           </span>
         </div>
@@ -150,15 +152,15 @@ export default async function OverviewPage() {
 
       <section className="space-y-3">
         <div className="flex items-end justify-between">
-          <h2 className="text-base font-semibold tracking-tight text-zinc-900">Aplicativos</h2>
+          <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Aplicativos</h2>
           <Button variant="outline" asChild className="rounded-xl">
             <Link href={'/workspaces' as never}>Ver todos</Link>
           </Button>
         </div>
         {workspaces.length === 0 && (
-          <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center">
-            <div className="text-sm font-medium text-zinc-700">Nenhum aplicativo cadastrado</div>
-            <div className="mt-1 text-xs text-zinc-500">
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 text-center">
+            <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Nenhum aplicativo cadastrado</div>
+            <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
               Crie um aplicativo pra agrupar conexões e recursos.
             </div>
             <Button asChild className="mt-4 bg-violet-600 hover:bg-violet-700 text-white rounded-xl">
@@ -194,21 +196,21 @@ export default async function OverviewPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-base font-semibold tracking-tight text-zinc-900">Maiores gastos</h2>
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Maiores gastos</h2>
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm">
           {topSpenders.length === 0 && (
-            <p className="text-sm text-zinc-500">Sem dados de custo ainda.</p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">Sem dados de custo ainda.</p>
           )}
-          <ul className="divide-y divide-zinc-100">
+          <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
             {topSpenders.map(([id, v]) => (
               <li key={id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                 <Link
-                  className="text-sm font-medium text-zinc-900 hover:text-violet-600"
+                  className="text-sm font-medium text-zinc-900 dark:text-zinc-100 hover:text-violet-600 dark:hover:text-violet-400"
                   href={`/resources/${id}` as never}
                 >
                   {v.name}
                 </Link>
-                <span className="text-xs font-medium text-zinc-700 bg-zinc-100 rounded-full px-2.5 py-1">
+                <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 rounded-full px-2.5 py-1">
                   {formatMoney(v.total, currency)}
                 </span>
               </li>

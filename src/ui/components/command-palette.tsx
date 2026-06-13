@@ -119,11 +119,11 @@ export function CommandPalette() {
       onClick={() => setOpen(false)}
     >
       <div
-        className="w-full max-w-xl rounded-2xl border border-zinc-200 bg-white shadow-2xl overflow-hidden"
+        className="w-full max-w-xl rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Input row */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-200">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
           <Search className="h-4 w-4 text-zinc-400 shrink-0" />
           <input
             ref={inputRef}
@@ -144,9 +144,9 @@ export function CommandPalette() {
               }
             }}
             placeholder="Buscar aplicativos, conexões, recursos…"
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-400"
+            className="flex-1 bg-transparent text-sm outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400"
           />
-          <kbd className="text-[10px] text-zinc-400 bg-zinc-100 border border-zinc-200 rounded px-1.5 py-0.5 shrink-0">
+          <kbd className="text-[10px] text-zinc-400 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded px-1.5 py-0.5 shrink-0">
             ESC
           </kbd>
         </div>
@@ -154,7 +154,7 @@ export function CommandPalette() {
         {/* Results */}
         <div className="max-h-80 overflow-y-auto p-2">
           {items.length === 0 && (
-            <div className="text-center text-sm text-zinc-500 py-8">
+            <div className="text-center text-sm text-zinc-500 dark:text-zinc-400 py-8">
               {q.trim() ? 'Nada encontrado.' : 'Comece a digitar pra buscar.'}
             </div>
           )}
@@ -172,25 +172,25 @@ export function CommandPalette() {
                 onMouseEnter={() => setHighlight(i)}
                 onClick={() => select(i)}
                 className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition ${
-                  isHighlighted ? 'bg-violet-50' : 'hover:bg-zinc-50'
+                  isHighlighted ? 'bg-violet-50 dark:bg-violet-950/40' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'
                 }`}
               >
                 <Icon
                   className={`h-4 w-4 shrink-0 ${
-                    isHighlighted ? 'text-violet-600' : 'text-zinc-500'
+                    isHighlighted ? 'text-violet-600 dark:text-violet-400' : 'text-zinc-500 dark:text-zinc-400'
                   }`}
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-zinc-900 truncate">
+                  <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
                     {item.label}
                   </div>
                   {'sub' in item && item.sub && (
-                    <div className="text-xs text-zinc-500 truncate">{item.sub}</div>
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">{item.sub}</div>
                   )}
                 </div>
                 <ArrowRight
                   className={`h-3.5 w-3.5 shrink-0 ${
-                    isHighlighted ? 'text-violet-600' : 'text-zinc-300'
+                    isHighlighted ? 'text-violet-600 dark:text-violet-400' : 'text-zinc-300 dark:text-zinc-600'
                   }`}
                 />
               </button>
@@ -199,15 +199,15 @@ export function CommandPalette() {
         </div>
 
         {/* Footer hint */}
-        <div className="border-t border-zinc-100 px-4 py-2 flex items-center justify-between text-[11px] text-zinc-500">
+        <div className="border-t border-zinc-100 dark:border-zinc-800 px-4 py-2 flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
           <span>↑↓ navegar · ↵ selecionar</span>
           <span>
             Pressione{' '}
-            <kbd className="bg-zinc-100 border border-zinc-200 rounded px-1 py-0.5 mx-0.5">
+            <kbd className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded px-1 py-0.5 mx-0.5">
               Ctrl
             </kbd>
             +
-            <kbd className="bg-zinc-100 border border-zinc-200 rounded px-1 py-0.5 mx-0.5">
+            <kbd className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded px-1 py-0.5 mx-0.5">
               K
             </kbd>{' '}
             em qualquer página

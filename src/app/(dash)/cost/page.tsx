@@ -67,7 +67,7 @@ export default async function CostPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {forecast && (
             <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-              <div className="text-sm text-zinc-500">Projeção próximos 30 dias</div>
+              <div className="text-sm text-zinc-500 dark:text-zinc-400">Projeção próximos 30 dias</div>
               <div className="mt-1 flex items-baseline gap-3">
                 <span className="text-2xl font-semibold">{formatMoney(forecast.projectedTotal, currency)}</span>
                 <span
@@ -77,20 +77,20 @@ export default async function CostPage() {
                       ? 'text-rose-600'
                       : forecast.trend === 'down'
                         ? 'text-emerald-600'
-                        : 'text-zinc-500',
+                        : 'text-zinc-500 dark:text-zinc-400',
                   )}
                 >
                   {forecast.trend === 'up' ? '▲ subindo' : forecast.trend === 'down' ? '▼ caindo' : '— estável'}
                 </span>
               </div>
-              <div className="mt-1 text-xs text-zinc-500">
+              <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                 base: {forecast.basisDays} dia(s) · média {formatMoney(forecast.avgDailyRecent, currency)}/dia
               </div>
             </div>
           )}
           {compare && (
             <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-              <div className="text-sm text-zinc-500">Últimos 30 dias vs anteriores</div>
+              <div className="text-sm text-zinc-500 dark:text-zinc-400">Últimos 30 dias vs anteriores</div>
               <div className="mt-1 flex items-baseline gap-3">
                 <span className="text-2xl font-semibold">{formatMoney(compare.current, currency)}</span>
                 {compare.deltaPct != null && (
@@ -101,7 +101,7 @@ export default async function CostPage() {
                   </span>
                 )}
               </div>
-              <div className="mt-1 text-xs text-zinc-500">
+              <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                 período anterior: {formatMoney(compare.previous, currency)}
               </div>
             </div>

@@ -41,7 +41,7 @@ export default async function ConnectionsPage({
         }
       />
       {workspaceSlug && (
-        <div className="flex items-center gap-2 text-sm text-zinc-500">
+        <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
           <span>Filtrando por aplicativo:</span>
           <Badge variant="outline">{workspaceSlug}</Badge>
           <Link href="/connections" className="text-violet-600 hover:underline text-xs">
@@ -49,7 +49,7 @@ export default async function ConnectionsPage({
           </Link>
         </div>
       )}
-      <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -64,7 +64,7 @@ export default async function ConnectionsPage({
           <TableBody>
             {rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-sm text-zinc-500 py-6">
+                <TableCell colSpan={6} className="text-center text-sm text-zinc-500 dark:text-zinc-400 py-6">
                   Nenhuma conexão encontrada.
                 </TableCell>
               </TableRow>
@@ -72,7 +72,7 @@ export default async function ConnectionsPage({
             {rows.map((c) => (
               <TableRow key={c.id}>
                 <TableCell>
-                  <Link href={`/connections/${c.id}` as never} className="font-medium text-zinc-900 hover:text-violet-600 transition-colors">
+                  <Link href={`/connections/${c.id}` as never} className="font-medium text-zinc-900 dark:text-zinc-100 hover:text-violet-600 transition-colors">
                     {c.name}
                   </Link>
                 </TableCell>
@@ -89,7 +89,7 @@ export default async function ConnectionsPage({
                 <TableCell>
                   <Badge variant={c.status === 'active' ? 'active' : 'destructive'}>{c.status}</Badge>
                 </TableCell>
-                <TableCell className="text-zinc-500">
+                <TableCell className="text-zinc-500 dark:text-zinc-400">
                   {c.lastCollectedAt ? c.lastCollectedAt.toISOString().slice(0, 19).replace('T', ' ') : '—'}
                 </TableCell>
                 <TableCell className="max-w-[400px] truncate text-xs text-zinc-400">

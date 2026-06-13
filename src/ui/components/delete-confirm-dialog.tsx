@@ -85,20 +85,20 @@ export function DeleteConfirmDialog({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-red-700">
+          <DialogTitle className="flex items-center gap-2 text-red-700 dark:text-red-300">
             <AlertTriangle className="h-5 w-5" />
             {title}
           </DialogTitle>
           <DialogDescription asChild>
             <div className="space-y-2 text-sm">
-              <p className="text-zinc-700 font-medium">Esta ação não pode ser desfeita.</p>
-              <p className="text-zinc-600 whitespace-pre-line">{description}</p>
+              <p className="text-zinc-700 dark:text-zinc-300 font-medium">Esta ação não pode ser desfeita.</p>
+              <p className="text-zinc-600 dark:text-zinc-400 whitespace-pre-line">{description}</p>
             </div>
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-2">
-          <Label htmlFor="confirm-name" className="text-xs text-zinc-600">
+          <Label htmlFor="confirm-name" className="text-xs text-zinc-600 dark:text-zinc-400">
             {inputLabel}
           </Label>
           <Input
@@ -109,14 +109,14 @@ export function DeleteConfirmDialog({
             autoComplete="off"
             className="font-mono text-sm"
           />
-          <div className="text-xs text-zinc-500">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400">
             Digite exatamente:{' '}
-            <span className="font-mono font-semibold text-zinc-800">{confirmName}</span>
+            <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-200">{confirmName}</span>
           </div>
         </div>
 
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2 whitespace-pre-wrap">
+          <p className="text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md p-2 whitespace-pre-wrap">
             {error}
           </p>
         )}

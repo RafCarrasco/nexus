@@ -120,13 +120,13 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
   return (
     <div className="max-w-2xl space-y-6">
       {banner && (
-        <div className="rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-800">
+        <div className="rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-800 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-200">
           {banner}
         </div>
       )}
 
       <form
-        className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm space-y-5"
+        className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm space-y-5"
         onSubmit={(e) => { e.preventDefault(); submit(); }}
       >
         {/* Nome */}
@@ -136,7 +136,7 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Production Firebase"
-            className="border-zinc-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 focus:ring-offset-0"
+            className="border-zinc-200 dark:border-zinc-800 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 focus:ring-offset-0"
           />
         </div>
 
@@ -145,7 +145,7 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
           <div className="space-y-2">
             <Label>Tipo</Label>
             <select
-              className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white"
+              className="w-full rounded-md border border-zinc-200 dark:border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white dark:bg-zinc-900"
               value={type}
               onChange={(e) => { setType(e.target.value); setServiceAccount(null); setProjectIdPreview(''); setEmailPreview(''); }}
             >
@@ -164,7 +164,7 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
         {forcedType && (
           <div className="space-y-2">
             <Label>Tipo</Label>
-            <div className="rounded-md border border-zinc-200 px-3 py-2 text-sm bg-zinc-50 text-zinc-700">
+            <div className="rounded-md border border-zinc-200 dark:border-zinc-800 px-3 py-2 text-sm bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">
               {forcedType}
             </div>
           </div>
@@ -175,7 +175,7 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
           <div className="space-y-2">
             <Label>Aplicativo (opcional)</Label>
             <select
-              className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white"
+              className="w-full rounded-md border border-zinc-200 dark:border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white dark:bg-zinc-900"
               value={workspaceId}
               onChange={(e) => setWorkspaceId(e.target.value)}
             >
@@ -204,7 +204,7 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
                   Carregar arquivo de serviço (.json)
                 </Button>
                 {projectIdPreview && (
-                  <span className="text-xs text-zinc-500 truncate">{projectIdPreview}</span>
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate">{projectIdPreview}</span>
                 )}
               </div>
               <input
@@ -216,9 +216,9 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
               />
               {/* Preview box */}
               {serviceAccount && (
-                <div className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-xs text-zinc-700 space-y-1">
-                  <div><span className="font-medium text-zinc-900">project_id:</span> {projectIdPreview}</div>
-                  <div><span className="font-medium text-zinc-900">client_email:</span> {emailPreview}</div>
+                <div className="mt-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-4 py-3 text-xs text-zinc-700 dark:text-zinc-300 space-y-1">
+                  <div><span className="font-medium text-zinc-900 dark:text-zinc-100">project_id:</span> {projectIdPreview}</div>
+                  <div><span className="font-medium text-zinc-900 dark:text-zinc-100">client_email:</span> {emailPreview}</div>
                 </div>
               )}
             </div>
@@ -229,9 +229,9 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
                 value={billingInput}
                 onChange={(e) => setBillingInput(e.target.value)}
                 placeholder="XXXXXX-XXXXXX-XXXXXX"
-                className="border-zinc-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 focus:ring-offset-0 font-mono"
+                className="border-zinc-200 dark:border-zinc-800 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 focus:ring-offset-0 font-mono"
               />
-              <p className="text-xs text-zinc-500">Encontrado no Console GCP → Faturamento. Necessário para custo diário.</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">Encontrado no Console GCP → Faturamento. Necessário para custo diário.</p>
             </div>
           </>
         )}
@@ -241,7 +241,7 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
           <div className="space-y-2">
             <Label>Configuração (JSON)</Label>
             <textarea
-              className="w-full min-h-[200px] rounded-md border border-zinc-200 px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500"
+              className="w-full min-h-[200px] rounded-md border border-zinc-200 dark:border-zinc-800 px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500"
               value={config}
               onChange={(e) => setConfig(e.target.value)}
               placeholder={PLACEHOLDER[type] ?? '{\n  "url": "...",\n  "token": "..."\n}'}
@@ -250,7 +250,7 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
         )}
 
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 whitespace-pre-wrap">
+          <p className="text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg p-3 whitespace-pre-wrap">
             {error}
           </p>
         )}

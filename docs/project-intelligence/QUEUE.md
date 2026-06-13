@@ -50,6 +50,13 @@ Branch: `feat/project-intelligence`. **Não dar push em `main` até o pipeline +
   Estimativa (não billing-accurate). `getDailyCost` segue null (custo é por-execução, não diário).
 - ⬜ **OpenClaw: bloqueado** — Rafael não sabe o que expõe (REST? logs? só container?).
   Investigar via Chrome/SSH quando der acesso. Fallback: docker provider (container health) + logs.
+- ⬜ **"Nexus entende os fluxos" — barato/grátis** (Rafael pediu o andamento 2026-06-13; não urgente):
+  - Fase 1 GRÁTIS: parse estrutural do JSON do workflow (`GET /workflows/{id}` = nodes+connections) →
+    trigger, serviços que toca, nº nodes/branches, tem error handling?, nodes de IA + modelo. Zero LLM.
+  - Fase 2 GRÁTIS: insights por regra (sem error handling / morto há 30d / erro alto / modelo IA caro). Zero LLM.
+  - Fase 3 BARATO+cacheado (opt-in): resumo NL via modelo barato (mini/flash/haiku), 1 chamada por versão
+    do workflow, cacheada (re-resume só quando muda via updatedAt). Centavos total, ~zero ongoing.
+  - Princípio: 90% do "entender fluxo" é grátis (parse+regras); LLM só pro resumo, barato e cacheado.
 
 ## C — Parrudão (notas pré-spec)
 - Segurança: authz nas rotas API (quem pode ler/escrever connection/resource), vault de

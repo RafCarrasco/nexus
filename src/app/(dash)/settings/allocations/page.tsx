@@ -29,10 +29,10 @@ export default async function AllocationsPage() {
 
       {/* Prompt: no clients */}
       {clients.length === 0 && (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-center space-y-3 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-10 text-center space-y-3 shadow-sm">
           <Users className="h-10 w-10 text-zinc-300 mx-auto" />
-          <h3 className="text-base font-semibold text-zinc-900">Nenhum cliente cadastrado</h3>
-          <p className="text-sm text-zinc-500 max-w-md mx-auto">
+          <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Nenhum cliente cadastrado</h3>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto">
             Para alocar recursos, primeiro cadastre ao menos um cliente.
           </p>
           <Button asChild className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl">
@@ -43,10 +43,10 @@ export default async function AllocationsPage() {
 
       {/* Prompt: no resources */}
       {resources.length === 0 && (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-center space-y-3 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-10 text-center space-y-3 shadow-sm">
           <Boxes className="h-10 w-10 text-zinc-300 mx-auto" />
-          <h3 className="text-base font-semibold text-zinc-900">Nenhum recurso disponível</h3>
-          <p className="text-sm text-zinc-500 max-w-md mx-auto">
+          <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Nenhum recurso disponível</h3>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto">
             Adicione conexões nos seus aplicativos para descobrir recursos.
           </p>
           <Button asChild className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl">
@@ -58,8 +58,8 @@ export default async function AllocationsPage() {
       {/* Resources section */}
       {resources.length > 0 && clients.length > 0 && (
       <section className="space-y-3">
-        <h2 className="text-base font-semibold text-zinc-900">Recursos</h2>
-        <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
+        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Recursos</h2>
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>
@@ -73,14 +73,14 @@ export default async function AllocationsPage() {
             <TableBody>
               {resources.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell className="font-medium text-zinc-900">{r.name}</TableCell>
-                  <TableCell className="text-zinc-500">{r.connection.type}</TableCell>
+                  <TableCell className="font-medium text-zinc-900 dark:text-zinc-100">{r.name}</TableCell>
+                  <TableCell className="text-zinc-500 dark:text-zinc-400">{r.connection.type}</TableCell>
                   <TableCell>
                     <form action={setResourceClient} className="flex items-center gap-2">
                       <input type="hidden" name="resourceId" value={r.id} />
                       <select
                         name="clientId"
-                        className="rounded-md border border-zinc-200 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white"
+                        className="rounded-md border border-zinc-200 dark:border-zinc-800 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white dark:bg-zinc-900"
                       >
                         {clientOptions(r.clientId)}
                       </select>
@@ -100,8 +100,8 @@ export default async function AllocationsPage() {
       {/* Tenants section */}
       {tenants.length > 0 && clients.length > 0 && (
       <section className="space-y-3">
-        <h2 className="text-base font-semibold text-zinc-900">Tenants</h2>
-        <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
+        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Tenants</h2>
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>
@@ -114,14 +114,14 @@ export default async function AllocationsPage() {
             <TableBody>
               {tenants.map((t) => (
                 <TableRow key={t.id}>
-                  <TableCell className="font-medium text-zinc-900">{t.displayName}</TableCell>
-                  <TableCell className="text-zinc-500">{t.resource.name}</TableCell>
+                  <TableCell className="font-medium text-zinc-900 dark:text-zinc-100">{t.displayName}</TableCell>
+                  <TableCell className="text-zinc-500 dark:text-zinc-400">{t.resource.name}</TableCell>
                   <TableCell>
                     <form action={setTenantClient} className="flex items-center gap-2">
                       <input type="hidden" name="tenantId" value={t.id} />
                       <select
                         name="clientId"
-                        className="rounded-md border border-zinc-200 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white"
+                        className="rounded-md border border-zinc-200 dark:border-zinc-800 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white dark:bg-zinc-900"
                       >
                         {clientOptions(t.clientId)}
                       </select>

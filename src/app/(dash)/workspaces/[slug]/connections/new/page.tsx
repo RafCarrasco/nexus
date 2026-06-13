@@ -31,7 +31,7 @@ export default async function WorkspaceNewConnectionPage({
 
   const providerToggle = (
     <div className="flex items-center gap-2 flex-wrap">
-      <span className="text-zinc-500 text-xs">Outro provedor:</span>
+      <span className="text-zinc-500 dark:text-zinc-400 text-xs">Outro provedor:</span>
       <Link href={`/workspaces/${slug}/connections/new` as never}>
         <Button
           variant={isFirebase ? 'default' : 'outline'}
@@ -60,7 +60,7 @@ export default async function WorkspaceNewConnectionPage({
       <PageHeader title={`Nova conexão · ${w.name}`} action={providerToggle} />
 
       {sp.created === '1' && (
-        <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-900">
+        <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-900 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-200">
           ✓ Aplicativo <strong>{w.name}</strong> criado! Adicione a primeira conexão pra começar
           a monitorar.
         </div>

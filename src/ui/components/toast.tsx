@@ -48,9 +48,9 @@ export function useToast() {
 }
 
 const KIND_STYLES: Record<Kind, string> = {
-  success: 'bg-emerald-50 border-emerald-200 text-emerald-900',
-  error:   'bg-red-50 border-red-200 text-red-900',
-  info:    'bg-violet-50 border-violet-200 text-violet-900',
+  success: 'bg-emerald-50 border-emerald-200 text-emerald-900 dark:bg-emerald-950/40 dark:border-emerald-900 dark:text-emerald-200',
+  error:   'bg-red-50 border-red-200 text-red-900 dark:bg-red-950/40 dark:border-red-900 dark:text-red-200',
+  info:    'bg-violet-50 border-violet-200 text-violet-900 dark:bg-violet-950/40 dark:border-violet-900 dark:text-violet-200',
 };
 
 const KIND_ICONS: Record<Kind, typeof CheckCircle2> = {

@@ -76,7 +76,7 @@ export default async function DashLayout({ children }: { children: ReactNode }) 
           <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-8 py-3 flex items-center justify-between">
             <Breadcrumb />
             <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+              <span className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" title="Sistema online" />
                 Online
               </span>

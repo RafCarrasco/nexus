@@ -47,7 +47,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
         action={
           <DeleteConfirmDialog
             trigger={
-              <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50 border-red-200">
+              <Button variant="outline" size="sm" className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 border-red-200 dark:border-red-900">
                 Excluir recurso
               </Button>
             }
@@ -89,7 +89,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
       )}
       <section className="p-6">
         <h2 className="mb-2 text-lg font-semibold">Tenants</h2>
-        {r.tenants.length === 0 && <p className="text-sm text-zinc-500">Nenhum tenant descoberto.</p>}
+        {r.tenants.length === 0 && <p className="text-sm text-zinc-500 dark:text-zinc-400">Nenhum tenant descoberto.</p>}
         {r.tenants.length > 0 && (
           <Table>
             <TableHeader><TableRow><TableHead>Tenant</TableHead><TableHead>ID externo</TableHead><TableHead>Cliente</TableHead><TableHead></TableHead></TableRow></TableHeader>
@@ -121,7 +121,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
       </section>
       <section className="p-6">
         <h2 className="mb-2 text-lg font-semibold">Incidentes recentes</h2>
-        {r.incidents.length === 0 && <p className="text-sm text-zinc-500">Sem incidentes.</p>}
+        {r.incidents.length === 0 && <p className="text-sm text-zinc-500 dark:text-zinc-400">Sem incidentes.</p>}
         {r.incidents.length > 0 && (
           <Table>
             <TableHeader><TableRow><TableHead>Aberto em</TableHead><TableHead>Tipo</TableHead><TableHead>Severidade</TableHead><TableHead>Mensagem</TableHead></TableRow></TableHeader>

@@ -17,7 +17,7 @@ export default async function AuditPage() {
       <PageHeader title="Registro de auditoria" />
       <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         {entries.length === 0 ? (
-          <p className="p-6 text-sm text-zinc-500">Nenhuma ação registrada ainda.</p>
+          <p className="p-6 text-sm text-zinc-500 dark:text-zinc-400">Nenhuma ação registrada ainda.</p>
         ) : (
           <Table>
             <TableHeader>
@@ -31,7 +31,7 @@ export default async function AuditPage() {
             <TableBody>
               {entries.map((e) => (
                 <TableRow key={e.id}>
-                  <TableCell className="whitespace-nowrap text-xs text-zinc-500">
+                  <TableCell className="whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400">
                     {e.createdAt.toISOString().slice(0, 19).replace('T', ' ')}
                   </TableCell>
                   <TableCell className="text-sm">{e.user?.name ?? e.user?.email ?? e.userId}</TableCell>

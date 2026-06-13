@@ -52,8 +52,8 @@ export function ServiceInventoryPanel({
             <div
               key={item.key}
               className={cn(
-                'flex items-start gap-3 rounded-lg border p-4',
-                item.enabled ? 'bg-card' : 'bg-zinc-50 opacity-60',
+                'flex items-start gap-3 rounded-lg border dark:border-zinc-800 p-4',
+                item.enabled ? 'bg-card' : 'bg-zinc-50 dark:bg-zinc-800 opacity-60',
               )}
             >
               <Icon className={cn('mt-0.5 h-5 w-5 shrink-0', item.enabled ? 'text-violet-600' : 'text-zinc-400')} />
@@ -62,14 +62,14 @@ export function ServiceInventoryPanel({
                   <span className="font-medium">{item.label}</span>
                   <Badge variant={item.enabled ? 'active' : 'outline'}>{item.enabled ? 'em uso' : 'inativo'}</Badge>
                 </div>
-                {item.headline && <p className="mt-0.5 truncate text-sm text-zinc-500">{item.headline}</p>}
+                {item.headline && <p className="mt-0.5 truncate text-sm text-zinc-500 dark:text-zinc-400">{item.headline}</p>}
               </div>
             </div>
           );
         })}
       </div>
       {showAuth && (
-        <p className="mt-3 text-xs text-zinc-500">
+        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
           Auth: {authConfig!.signInMethods?.join(', ') || '—'}
           {authConfig!.mfa ? ` · MFA ${authConfig!.mfa}` : ''}
           {authConfig!.authorizedDomains?.length ? ` · domínios: ${authConfig!.authorizedDomains.join(', ')}` : ''}

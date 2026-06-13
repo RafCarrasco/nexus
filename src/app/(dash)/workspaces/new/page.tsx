@@ -40,7 +40,7 @@ export default function NewWorkspacePage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Novo aplicativo" />
-      <form action={createWorkspace} className="max-w-xl space-y-4 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <form action={createWorkspace} className="max-w-xl space-y-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm">
         <div className="space-y-1">
           <Label htmlFor="name">Nome</Label>
           <Input id="name" name="name" required placeholder="Mapa Comparativo" />

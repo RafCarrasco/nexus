@@ -74,14 +74,14 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="text-2xl font-semibold tracking-tight text-zinc-900">{w.name}</div>
+            <div className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{w.name}</div>
             <StatusPill status={workspaceStatus} size="md" count={openInc} />
           </div>
-          {w.description && <div className="text-sm text-zinc-500">{w.description}</div>}
+          {w.description && <div className="text-sm text-zinc-500 dark:text-zinc-400">{w.description}</div>}
         </div>
         <DeleteConfirmDialog
           trigger={
-            <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50 border-red-200">
+            <Button variant="outline" size="sm" className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 border-red-200 dark:border-red-900">
               Excluir aplicativo
             </Button>
           }
@@ -105,7 +105,7 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
       {/* Conexões section — one expandable card per connection */}
       <section className="space-y-3">
         <div className="flex items-end justify-between">
-          <h2 className="text-base font-semibold tracking-tight text-zinc-900">Conexões</h2>
+          <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Conexões</h2>
           <div className="flex gap-2">
             <RunNow />
             <Button asChild className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl">
@@ -114,13 +114,13 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
           </div>
         </div>
         {w.connections.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-8 py-14 flex flex-col items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100 text-violet-600 text-3xl select-none">
+          <div className="rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 px-8 py-14 flex flex-col items-center gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 text-3xl select-none">
               🔌
             </div>
             <div className="text-center space-y-1">
-              <p className="font-semibold text-zinc-800 text-base">Nenhuma conexão ainda</p>
-              <p className="text-sm text-zinc-500 max-w-xs">
+              <p className="font-semibold text-zinc-800 dark:text-zinc-200 text-base">Nenhuma conexão ainda</p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-xs">
                 Adicione a primeira conexão pra começar a descobrir recursos automaticamente.
               </p>
             </div>
@@ -168,8 +168,8 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
 
       {/* Incidentes abertos */}
       <section id="incidents" className="space-y-3">
-        <h2 className="text-base font-semibold tracking-tight text-zinc-900">Incidentes abertos</h2>
-        <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
+        <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Incidentes abertos</h2>
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>
@@ -183,7 +183,7 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
             <TableBody>
               {incidents.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-sm text-zinc-500 py-6">
+                  <TableCell colSpan={5} className="text-center text-sm text-zinc-500 dark:text-zinc-400 py-6">
                     Sem incidentes abertos.
                   </TableCell>
                 </TableRow>
@@ -192,7 +192,7 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
                 <TableRow key={i.id}>
                   <TableCell>{i.openedAt.toISOString().slice(0, 19).replace('T', ' ')}</TableCell>
                   <TableCell>
-                    <Link className="text-zinc-900 hover:text-violet-600" href={`/resources/${i.resourceId}` as never}>
+                    <Link className="text-zinc-900 dark:text-zinc-100 hover:text-violet-600" href={`/resources/${i.resourceId}` as never}>
                       {i.resource?.name ?? '—'}
                     </Link>
                   </TableCell>

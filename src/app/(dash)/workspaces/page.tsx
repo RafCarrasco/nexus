@@ -42,9 +42,9 @@ export default async function WorkspacesPage() {
         }
       />
       {workspaces.length === 0 && (
-        <div className="rounded-xl border border-zinc-200 bg-white p-12 text-center">
-          <div className="text-sm font-medium text-zinc-700">Nenhum aplicativo cadastrado</div>
-          <div className="mt-1 text-xs text-zinc-500">Crie o primeiro pra agrupar suas conexões.</div>
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-12 text-center">
+          <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Nenhum aplicativo cadastrado</div>
+          <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Crie o primeiro pra agrupar suas conexões.</div>
         </div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

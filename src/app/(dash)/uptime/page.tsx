@@ -66,7 +66,7 @@ export default async function UptimePage() {
 
       <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         {checks.length === 0 ? (
-          <p className="p-6 text-sm text-zinc-500">Nenhum check ainda. Adicione uma URL acima.</p>
+          <p className="p-6 text-sm text-zinc-500 dark:text-zinc-400">Nenhum check ainda. Adicione uma URL acima.</p>
         ) : (
           <Table>
             <TableHeader>
@@ -85,15 +85,15 @@ export default async function UptimePage() {
                 <TableRow key={c.id}>
                   <TableCell>{statusBadge(c.lastStatus)}</TableCell>
                   <TableCell className="text-sm font-medium">{c.name}</TableCell>
-                  <TableCell className="max-w-[260px] truncate font-mono text-xs text-zinc-500" title={c.url}>
+                  <TableCell className="max-w-[260px] truncate font-mono text-xs text-zinc-500 dark:text-zinc-400" title={c.url}>
                     {c.method} {c.url}
                   </TableCell>
-                  <TableCell className="text-xs text-zinc-500">{c.intervalSec}s</TableCell>
-                  <TableCell className="text-xs text-zinc-500">
+                  <TableCell className="text-xs text-zinc-500 dark:text-zinc-400">{c.intervalSec}s</TableCell>
+                  <TableCell className="text-xs text-zinc-500 dark:text-zinc-400">
                     {c.consecutiveFails > 0 ? `${c.consecutiveFails}/${c.failThreshold}` : '—'}
                     {c.lastError ? <span className="block text-rose-600">{c.lastError}</span> : null}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap text-xs text-zinc-500">
+                  <TableCell className="whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400">
                     {c.lastCheckedAt ? c.lastCheckedAt.toISOString().slice(0, 16).replace('T', ' ') : 'nunca'}
                   </TableCell>
                   <TableCell className="text-right">

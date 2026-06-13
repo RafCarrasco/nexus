@@ -48,7 +48,7 @@ export function AgentStatsPanel({
         />
         <Stat label="Tokens IA (últ.)" value={tokenValue} />
       </div>
-      <p className="mt-3 text-xs text-zinc-500">
+      <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
         ✓ {stats.success} sucesso · ✕ {stats.error} erro
         {stats.running ? ` · ${stats.running} rodando` : ''}
         {recentModel ? ` · modelo ${recentModel}` : ''}
@@ -68,8 +68,8 @@ function Stat({
   badgeVariant?: 'active' | 'default' | 'destructive';
 }) {
   return (
-    <div className="rounded-lg border p-4">
-      <div className="text-xs text-zinc-500">{label}</div>
+    <div className="rounded-lg border dark:border-zinc-800 p-4">
+      <div className="text-xs text-zinc-500 dark:text-zinc-400">{label}</div>
       <div className="mt-1 text-xl font-semibold">
         {badgeVariant ? <Badge variant={badgeVariant}>{value}</Badge> : value}
       </div>
