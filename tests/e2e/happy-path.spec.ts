@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 
+// Must match NEXUS_E2E_SECRET set in playwright.config.ts (same runner process).
 test.use({
-  extraHTTPHeaders: { 'x-nexus-e2e': '1' },
+  extraHTTPHeaders: { 'x-nexus-e2e': process.env.NEXUS_E2E_SECRET ?? 'e2e-local-bypass-secret' },
 });
 
 test('create fake connection, run collector, see resources + incident flow', async ({ page, request }) => {
