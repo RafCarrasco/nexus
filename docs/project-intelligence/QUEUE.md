@@ -32,6 +32,9 @@ Branch: `feat/project-intelligence`. **Não dar push em `main` até o pipeline +
   `127.0.0.1` (não host/`localhost` — porta atrás do Traefik + IPv6); Dockerfile com node_modules
   completo + `prisma.config.ts` (CLI do Prisma 7 precisa pro `migrate deploy`); baseline das 4
   migrations no prod (tabela `_prisma_migrations` não existia — deploy antigo aplicava SQL na mão).
+- ✅ **Modelo final = PULL via cron** (`scripts/autopull.sh`, every 2min, CI-gated, flock).
+  Push-SSH (`deploy.yml`) **falha** (firewall Hostinger dropa SSH de entrada dos runners GitHub) →
+  desabilitado. Pull testado end-to-end: push→CI verde→cron deploya com health gate. Ver `auto-deploy.md`.
 
 ## B — Observabilidade de agentes
 - ✅ **n8n camada de dados:** provider enriquece workflows ativos com `execStats`

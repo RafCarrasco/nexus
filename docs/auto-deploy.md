@@ -1,11 +1,32 @@
-# Auto-deploy via GitHub Actions (CI-gated) → SSH
+# Auto-deploy — CI-gated pull (cron)
 
-> **Decisão (2026-06-12):** o pipeline oficial é **GitHub Actions + SSH**, não o
-> webhook→n8n. Motivo: atrela deploy a CI verde (testa antes de subir), histórico
-> no GitHub, workflow versionado no repo, sem dependência do n8n no caminho crítico.
-> O rascunho antigo (webhook→n8n) está em [`auto-deploy-n8n-legacy.md`](./auto-deploy-n8n-legacy.md) como alternativa.
+> **ATIVO (2026-06-12): modelo PULL via cron no VPS.** O VPS roda `scripts/autopull.sh`
+> a cada 2 min: faz `git fetch origin main`, e se main avançou **E** o CI daquele commit
+> está verde (API `check-runs`), executa `nexus-deploy.sh` (build + `prisma migrate deploy`
+> + health gate interno + rollback).
+>
+> **Por que pull e não SSH-push:** o GitHub Actions SSH-push (`deploy.yml`) falha com
+> `dial tcp :22 i/o timeout` — a **rede da Hostinger dropa SSH de entrada dos IPs dos
+> runners do GitHub** (o VPS em si está aberto: sshd em 0.0.0.0, sem iptables/fail2ban;
+> meu IP conecta). O pull só usa saída → firewall-agnóstico. `deploy.yml` fica **desabilitado**
+> (serve de fallback se o firewall for aberto pros ranges do GitHub no futuro).
+>
+> CI-gate preservado (autopull checa o status do CI antes de deployar); health gate +
+> rollback do `deploy.sh` são a rede de segurança. Rascunho n8n: [`auto-deploy-n8n-legacy.md`](./auto-deploy-n8n-legacy.md).
 
-## O que faz
+## Setup do pull no VPS (já aplicado)
+
+```bash
+# scripts vêm do repo; symlinks + cron:
+ln -sf /docker/nexus/scripts/autopull.sh /usr/local/bin/nexus-autopull.sh
+ln -sf /docker/nexus/scripts/deploy.sh  /usr/local/bin/nexus-deploy.sh
+apt-get install -y jq   # autopull usa pra ler o status do CI
+# crontab:
+*/2 * * * * /usr/bin/flock -n /tmp/nexus-autopull.lock /usr/local/bin/nexus-autopull.sh >> /var/log/nexus-autopull.log 2>&1
+```
+Logs: `/var/log/nexus-autopull.log` (decisões do gate) e `/var/log/nexus-deploy.log` (deploy).
+
+## O que faz (o `deploy.sh`, chamado pelo autopull)
 
 `push` em `main` → **CI** (`.github/workflows/ci.yml`) roda lint + typecheck +
 testes (com Postgres real) → se verde, **Deploy** (`.github/workflows/deploy.yml`)
