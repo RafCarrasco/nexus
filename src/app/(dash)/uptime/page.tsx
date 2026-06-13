@@ -21,8 +21,17 @@ export default async function UptimePage() {
     <div className="space-y-6">
       <PageHeader
         title="Uptime"
-        subtitle="Ping HTTP periódico por recurso — abre incidente automático após N falhas consecutivas"
+        subtitle="Monitore a disponibilidade dos seus serviços e seja avisado quando algo sair do ar"
       />
+
+      <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-900 dark:border-violet-900/40 dark:bg-violet-950/30 dark:text-violet-200">
+        <p>
+          <span className="font-semibold">O que é:</span> cada check faz uma requisição HTTP na URL que você
+          informar, no intervalo escolhido. Se falhar várias vezes seguidas (limite configurável), o Nexus abre um
+          incidente crítico e dispara as notificações configuradas — e resolve sozinho quando o serviço volta ao ar.
+          Use para vigiar APIs, sites e endpoints <code className="font-mono text-xs">/health</code> dos apps que você acompanha.
+        </p>
+      </div>
 
       <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <h2 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-zinc-100">Adicionar check</h2>
@@ -66,7 +75,9 @@ export default async function UptimePage() {
 
       <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         {checks.length === 0 ? (
-          <p className="p-6 text-sm text-zinc-500 dark:text-zinc-400">Nenhum check ainda. Adicione uma URL acima.</p>
+          <p className="p-6 text-sm text-zinc-500 dark:text-zinc-400">
+            Nenhum check ainda. Cadastre a URL de um serviço (ex: o endpoint <code className="font-mono text-xs">/health</code> de um app) acima para começar a monitorar.
+          </p>
         ) : (
           <Table>
             <TableHeader>
