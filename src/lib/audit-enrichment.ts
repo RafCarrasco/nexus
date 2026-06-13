@@ -23,6 +23,7 @@ export type EntityType =
   | 'incident'
   | 'filter'
   | 'alert'
+  | 'ai'
   | 'system'
   | 'unknown';
 
@@ -59,6 +60,7 @@ const ACTION_LABELS: Record<string, string> = {
   'savedFilter.create': 'Filtro salvo',
   'savedFilter.delete': 'Filtro removido',
   'collector.run': 'Coleta executada',
+  'ai.config': 'IA configurada',
 };
 
 const ENTITY_LABELS: Record<EntityType, string> = {
@@ -72,12 +74,13 @@ const ENTITY_LABELS: Record<EntityType, string> = {
   incident: 'Incidente',
   filter: 'Filtro',
   alert: 'Alerta',
+  ai: 'IA',
   system: 'Sistema',
   unknown: '—',
 };
 
 /** Actions whose `target` is ALREADY a human string (not an id to resolve). */
-const HUMAN_TARGET_ACTIONS = new Set(['collector.run', 'savedFilter.create', 'incident.bulk_resolve']);
+const HUMAN_TARGET_ACTIONS = new Set(['collector.run', 'savedFilter.create', 'incident.bulk_resolve', 'ai.config']);
 
 function entityTypeOf(action: string): EntityType {
   const prefix = action.split('.')[0];
@@ -102,6 +105,8 @@ function entityTypeOf(action: string): EntityType {
       return 'filter';
     case 'alert':
       return 'alert';
+    case 'ai':
+      return 'ai';
     case 'collector':
       return 'system';
     default:
