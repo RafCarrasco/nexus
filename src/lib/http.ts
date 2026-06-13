@@ -48,3 +48,23 @@ export async function probePublicUrl(
     return { status: 'degraded', message: (e as Error).message };
   }
 }
+
+/**
+ * Uptime probe: GET/HEAD a public URL and report up (status < 400) or down, with the
+ * status code or network error. Same SSRF guard as probePublicUrl.
+ */
+export async function probeUptimeUrl(
+  rawUrl: string,
+  method: 'GET' | 'HEAD' = 'GET',
+  ms = 10000,
+): Promise<{ ok: boolean; status?: number; error?: string }> {
+  if (!isSafePublicHttpUrl(rawUrl)) return { ok: false, error: 'unsafe url' };
+  try {
+    const res = await fetchWithTimeout(rawUrl, { method }, ms);
+    return res.status < 400
+      ? { ok: true, status: res.status }
+      : { ok: false, status: res.status, error: `http ${res.status}` };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}

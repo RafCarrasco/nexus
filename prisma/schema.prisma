@@ -11,9 +11,10 @@ model Workspace {
   slug        String       @unique
   name        String
   description String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  connections Connection[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  connections  Connection[]
+  uptimeChecks UptimeCheck[]
 }
 
 model Connection {
@@ -87,17 +88,38 @@ model ActivityLog {
 }
 
 model Incident {
-  id         String    @id @default(cuid())
-  resourceId String
-  type       String
-  severity   String
-  message    String
-  openedAt   DateTime  @default(now())
-  resolvedAt DateTime?
-  payload    Json?
-  resource   Resource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  id            String       @id @default(cuid())
+  resourceId    String?
+  uptimeCheckId String?
+  type          String
+  severity      String
+  message       String
+  openedAt      DateTime     @default(now())
+  resolvedAt    DateTime?
+  payload       Json?
+  resource      Resource?    @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  uptimeCheck   UptimeCheck? @relation(fields: [uptimeCheckId], references: [id], onDelete: Cascade)
 
   @@index([resolvedAt, openedAt])
+}
+
+model UptimeCheck {
+  id               String     @id @default(cuid())
+  name             String
+  url              String
+  method           String     @default("GET")
+  intervalSec      Int        @default(300)
+  failThreshold    Int        @default(3)
+  workspaceId      String?
+  enabled          Boolean    @default(true)
+  consecutiveFails Int        @default(0)
+  lastStatus       String?
+  lastError        String?
+  lastCheckedAt    DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  workspace        Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  incidents        Incident[]
 }
 
 model Client {

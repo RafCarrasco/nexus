@@ -86,7 +86,7 @@ export async function GET(req: Request) {
         id: i.id,
         label: i.message.slice(0, 80),
         sub: i.severity,
-        href: `/resources/${i.resource.id}`,
+        href: i.resource ? `/resources/${i.resource.id}` : '/uptime',
       })),
     ],
   });

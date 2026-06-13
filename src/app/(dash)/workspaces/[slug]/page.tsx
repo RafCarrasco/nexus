@@ -193,7 +193,7 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
                   <TableCell>{i.openedAt.toISOString().slice(0, 19).replace('T', ' ')}</TableCell>
                   <TableCell>
                     <Link className="text-zinc-900 hover:text-violet-600" href={`/resources/${i.resourceId}` as never}>
-                      {i.resource.name}
+                      {i.resource?.name ?? '—'}
                     </Link>
                   </TableCell>
                   <TableCell>{i.type}</TableCell>

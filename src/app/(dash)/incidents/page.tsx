@@ -10,13 +10,13 @@ export default async function IncidentsPage() {
   const open = await prisma.incident.findMany({
     where: { resolvedAt: null },
     orderBy: { openedAt: 'desc' },
-    include: { resource: { include: { connection: true } } },
+    include: { resource: { include: { connection: true } }, uptimeCheck: true },
   });
   const recent = await prisma.incident.findMany({
     where: { resolvedAt: { not: null } },
     orderBy: { resolvedAt: 'desc' },
     take: 50,
-    include: { resource: true },
+    include: { resource: true, uptimeCheck: true },
   });
   if (open.length === 0 && recent.length === 0) {
     return (
@@ -71,9 +71,15 @@ export default async function IncidentsPage() {
                     {i.openedAt.toISOString().slice(0, 19).replace('T', ' ')}
                   </TableCell>
                   <TableCell>
-                    <Link href={`/resources/${i.resourceId}` as never} className="font-medium text-zinc-900 hover:text-violet-600 transition-colors">
-                      {i.resource.name}
-                    </Link>
+                    {i.resource ? (
+                      <Link href={`/resources/${i.resourceId}` as never} className="font-medium text-zinc-900 hover:text-violet-600 transition-colors">
+                        {i.resource.name}
+                      </Link>
+                    ) : (
+                      <Link href={'/uptime' as never} className="font-medium text-zinc-900 hover:text-violet-600 transition-colors">
+                        {i.uptimeCheck?.name ?? '—'}
+                      </Link>
+                    )}
                   </TableCell>
                   <TableCell className="text-zinc-500">{i.type}</TableCell>
                   <TableCell>
@@ -114,7 +120,7 @@ export default async function IncidentsPage() {
                   <TableCell className="text-zinc-500 text-xs">
                     {i.resolvedAt!.toISOString().slice(0, 19).replace('T', ' ')}
                   </TableCell>
-                  <TableCell className="font-medium text-zinc-900">{i.resource.name}</TableCell>
+                  <TableCell className="font-medium text-zinc-900">{i.resource?.name ?? i.uptimeCheck?.name ?? '—'}</TableCell>
                   <TableCell className="text-zinc-500">{i.type}</TableCell>
                   <TableCell className="max-w-[420px] truncate text-zinc-600">{i.message}</TableCell>
                 </TableRow>
