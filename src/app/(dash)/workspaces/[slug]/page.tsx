@@ -11,7 +11,9 @@ import { RunNow } from '@/app/(dash)/connections/run-now';
 import { DeleteConfirmDialog } from '@/ui/components/delete-confirm-dialog';
 import { ConnectionCard } from '@/ui/components/connection-card';
 import { StatusPill } from '@/ui/components/status-pill';
+import { Input } from '@/ui/components/input';
 import { aggregateStatus } from '@/lib/status';
+import { updateWorkspace } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -93,6 +95,32 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
           onSuccessRedirect="/workspaces"
         />
       </div>
+
+      {/* Edit app */}
+      <details className="group rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+        <summary className="flex cursor-pointer select-none list-none items-center justify-between px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+          <span>Editar app</span>
+          <span className="text-xs text-zinc-400 group-open:hidden">▸</span>
+          <span className="hidden text-xs text-zinc-400 group-open:inline">▾</span>
+        </summary>
+        <form action={updateWorkspace} className="space-y-3 border-t border-zinc-200 p-4 dark:border-zinc-800">
+          <input type="hidden" name="id" value={w.id} />
+          <input type="hidden" name="slug" value={w.slug} />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Nome</label>
+              <Input name="name" defaultValue={w.name} required />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Descrição</label>
+              <Input name="description" defaultValue={w.description ?? ''} placeholder="(opcional)" />
+            </div>
+          </div>
+          <Button type="submit" size="sm">
+            Salvar
+          </Button>
+        </form>
+      </details>
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
