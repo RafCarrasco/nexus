@@ -1,3 +1,5 @@
+import { AuthError } from 'next-auth';
+import { redirect } from 'next/navigation';
 import { signIn } from '@/auth/config';
 import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
@@ -28,10 +30,12 @@ function MicrosoftLogo() {
   );
 }
 
-export default function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   // Evaluated per-request thanks to `export const dynamic = 'force-dynamic'`.
+  const { error } = await searchParams;
   const devLoginEnabled = process.env.NEXUS_DEV_LOGIN === '1';
   const requireDevPassword = !!process.env.NEXUS_DEV_PASSWORD;
+  const domain = process.env.NEXUS_ALLOWED_EMAIL_DOMAIN ?? 'empresa.com';
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4">
       <div className="w-full max-w-md">
@@ -50,14 +54,26 @@ export default function LoginPage() {
             <form
               action={async (formData: FormData) => {
                 'use server';
-                await signIn('dev-email', {
-                  email: String(formData.get('email') ?? ''),
-                  password: String(formData.get('password') ?? ''),
-                  redirectTo: '/',
-                });
+                try {
+                  await signIn('dev-email', {
+                    email: String(formData.get('email') ?? ''),
+                    password: String(formData.get('password') ?? ''),
+                    redirectTo: '/',
+                  });
+                } catch (e) {
+                  // A failed sign-in throws AuthError — show a message instead of
+                  // crashing the page. Re-throw NEXT_REDIRECT (the success redirect).
+                  if (e instanceof AuthError) redirect('/login?error=1');
+                  throw e;
+                }
               }}
               className="space-y-4"
             >
+              {error && (
+                <p className="rounded-lg border border-rose-200/60 bg-rose-50/60 p-3 text-xs text-rose-700">
+                  Email ou senha inválidos. Use seu email corporativo (@{domain}) autorizado.
+                </p>
+              )}
               <div className="space-y-1">
                 <Label htmlFor="email">Email corporativo</Label>
                 <Input
@@ -65,7 +81,7 @@ export default function LoginPage() {
                   name="email"
                   type="email"
                   required
-                  placeholder="you@procurementgarage.com"
+                  placeholder={`you@${domain}`}
                   className="border-zinc-200 rounded-md focus:border-violet-500 focus:ring-2 focus:ring-violet-100 focus:ring-offset-0"
                 />
               </div>
