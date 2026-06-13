@@ -1,7 +1,7 @@
 import { prisma } from '@/db/client';
 import { log } from '@/lib/logger';
 import { listNotifiers } from './registry';
-import { buildResourceContext, buildUptimeContext, buildAlertContext } from './context';
+import { buildResourceContext, buildUptimeContext } from './context';
 import type { IncidentContext } from './types';
 
 /**
@@ -15,14 +15,13 @@ export async function notifyResolvedIncidents(ids: string[]): Promise<void> {
   try {
     const incidents = await prisma.incident.findMany({
       where: { id: { in: ids } },
-      include: { resource: true, uptimeCheck: true, alertRule: true },
+      include: { resource: true, uptimeCheck: true },
     });
     const notifiers = listNotifiers();
     for (const inc of incidents) {
       let ctx: IncidentContext | null = null;
       if (inc.resource) ctx = buildResourceContext(inc.resource, 'resolve');
       else if (inc.uptimeCheck) ctx = buildUptimeContext(inc.uptimeCheck, 'resolve');
-      else if (inc.alertRule) ctx = buildAlertContext(inc.alertRule, 'resolve');
       if (!ctx) continue;
       for (const n of notifiers) {
         try {

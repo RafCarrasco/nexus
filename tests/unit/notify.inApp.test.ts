@@ -9,7 +9,7 @@ describe('InAppNotifier', () => {
     const before = await prisma.incident.count();
     const ctx: IncidentContext = { source: 'resource', label: 'fake', kind: 'fake', phase: 'open' };
     await inAppNotifier.notify(
-      { id: 'i1', resourceId: 'r1', uptimeCheckId: null, alertRuleId: null, type: 'cost_spike', severity: 'warn', message: 'spike', openedAt: new Date(), resolvedAt: null, payload: null },
+      { id: 'i1', resourceId: 'r1', uptimeCheckId: null, type: 'cost_spike', severity: 'warn', message: 'spike', openedAt: new Date(), resolvedAt: null, payload: null },
       ctx,
     );
     const after = await prisma.incident.count();

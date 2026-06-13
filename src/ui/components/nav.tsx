@@ -1,23 +1,20 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, LayoutGrid, Boxes, AlertTriangle, Settings, TrendingUp, History, Activity, BellRing, Bell } from 'lucide-react';
+import { Home, LayoutGrid, AlertTriangle, TrendingUp, History, Activity, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const mainItems = [
   { href: '/',           label: 'Visão geral', Icon: Home },
   { href: '/workspaces', label: 'Aplicativos', Icon: LayoutGrid },
   { href: '/cost',       label: 'Custo',       Icon: TrendingUp },
-  { href: '/resources',  label: 'Recursos',    Icon: Boxes },
   { href: '/incidents',  label: 'Incidentes',  Icon: AlertTriangle },
   { href: '/uptime',     label: 'Uptime',      Icon: Activity },
-  { href: '/alerts',     label: 'Alertas',     Icon: BellRing },
 ] as const;
 
 const settingsItems = [
   { href: '/settings/channels', label: 'Notificações',  Icon: Bell },
   { href: '/settings/audit',    label: 'Auditoria',     Icon: History },
-  { href: '/settings/clients',  label: 'Configurações', Icon: Settings },
 ] as const;
 
 type NavItemProps = { href: string; label: string; Icon: React.ElementType; active: boolean };

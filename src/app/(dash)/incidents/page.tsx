@@ -35,19 +35,19 @@ export default async function IncidentsPage({
   const open = await prisma.incident.findMany({
     where: { resolvedAt: null, ...incidentFilter },
     orderBy: { openedAt: 'desc' },
-    include: { resource: { include: { connection: true } }, uptimeCheck: true, alertRule: true },
+    include: { resource: { include: { connection: true } }, uptimeCheck: true },
   });
   const recent = await prisma.incident.findMany({
     where: { resolvedAt: { not: null }, ...incidentFilter },
     orderBy: { resolvedAt: 'desc' },
     take: 50,
-    include: { resource: true, uptimeCheck: true, alertRule: true },
+    include: { resource: true, uptimeCheck: true },
   });
   const openRows: OpenRow[] = open.map((i) => ({
     id: i.id,
     openedAt: i.openedAt.toISOString().slice(0, 19).replace('T', ' '),
-    name: i.resource?.name ?? i.uptimeCheck?.name ?? i.alertRule?.name ?? '—',
-    href: i.resource ? `/resources/${i.resourceId}` : i.uptimeCheck ? '/uptime' : '/alerts',
+    name: i.resource?.name ?? i.uptimeCheck?.name ?? '—',
+    href: i.resource ? `/resources/${i.resourceId}` : '/uptime',
     type: i.type,
     severity: i.severity,
     message: i.message,
@@ -121,7 +121,7 @@ export default async function IncidentsPage({
                   <TableCell className="text-zinc-500 dark:text-zinc-400 text-xs">
                     {i.resolvedAt!.toISOString().slice(0, 19).replace('T', ' ')}
                   </TableCell>
-                  <TableCell className="font-medium text-zinc-900 dark:text-zinc-100">{i.resource?.name ?? i.uptimeCheck?.name ?? i.alertRule?.name ?? '—'}</TableCell>
+                  <TableCell className="font-medium text-zinc-900 dark:text-zinc-100">{i.resource?.name ?? i.uptimeCheck?.name ?? '—'}</TableCell>
                   <TableCell className="text-zinc-500 dark:text-zinc-400">{i.type}</TableCell>
                   <TableCell className="max-w-[420px] truncate text-zinc-600 dark:text-zinc-400">{i.message}</TableCell>
                 </TableRow>

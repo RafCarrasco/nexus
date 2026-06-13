@@ -11,7 +11,6 @@ function incident(over: Partial<Incident> = {}): Incident {
     id: 'inc1',
     resourceId: null,
     uptimeCheckId: null,
-    alertRuleId: null,
     type: 'health_bad',
     severity: 'crit',
     message: 'tudo pegando fogo',
@@ -33,12 +32,6 @@ const uptimeCtx = (phase: 'open' | 'resolve'): IncidentContext => ({
   label: 'Site público',
   kind: 'GET',
   url: 'https://exemplo.com/health',
-  phase,
-});
-const alertCtx = (phase: 'open' | 'resolve'): IncidentContext => ({
-  source: 'alert',
-  label: 'Custo acima do orçamento',
-  kind: 'cost_30d',
   phase,
 });
 
@@ -92,7 +85,7 @@ describe('formatPayload — Slack', () => {
 
 describe('formatPayload — Teams', () => {
   it('open: MessageCard with themeColor (no #) by severity', () => {
-    const p = formatPayload('teams', incident({ severity: 'warn' }), alertCtx('open')) as {
+    const p = formatPayload('teams', incident({ severity: 'warn' }), resourceCtx('open')) as {
       '@type': string;
       themeColor: string;
       title: string;
@@ -100,7 +93,7 @@ describe('formatPayload — Teams', () => {
     };
     expect(p['@type']).toBe('MessageCard');
     expect(p.themeColor).toBe('f59e0b');
-    expect(p.title).toContain('Alerta');
+    expect(p.title).toContain('Recurso');
     expect(p.sections[0].facts.some((f) => f.name === 'Severidade' && f.value === 'warn')).toBe(true);
   });
 
@@ -130,16 +123,16 @@ describe('formatPayload — generic webhook', () => {
     });
   });
 
-  it('resolve from an alert: carries resolvedAt and alert source', () => {
+  it('resolve from a resource: carries resolvedAt and resource source', () => {
     const p = formatPayload(
       'webhook',
-      incident({ type: 'alert', severity: 'warn', resolvedAt: RESOLVED }),
-      alertCtx('resolve'),
+      incident({ type: 'health_bad', severity: 'warn', resolvedAt: RESOLVED }),
+      resourceCtx('resolve'),
     ) as Record<string, unknown>;
     expect(p).toMatchObject({
       phase: 'resolve',
-      source: 'alert',
-      type: 'alert',
+      source: 'resource',
+      type: 'health_bad',
       resolvedAt: RESOLVED.toISOString(),
     });
   });

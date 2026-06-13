@@ -1,4 +1,4 @@
-import type { Resource, UptimeCheck, AlertRule } from '@prisma/client';
+import type { Resource, UptimeCheck } from '@prisma/client';
 import type { IncidentContext } from './types';
 
 /**
@@ -24,16 +24,6 @@ export function buildUptimeContext(check: UptimeCheck, phase: 'open' | 'resolve'
     kind: check.method,
     workspaceId: check.workspaceId,
     url: check.url,
-    phase,
-  };
-}
-
-export function buildAlertContext(rule: AlertRule, phase: 'open' | 'resolve'): IncidentContext {
-  return {
-    source: 'alert',
-    label: rule.name,
-    kind: rule.metric,
-    workspaceId: rule.workspaceId,
     phase,
   };
 }

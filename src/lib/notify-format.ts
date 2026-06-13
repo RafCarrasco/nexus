@@ -28,7 +28,6 @@ export function severityColor(severity: string, phase: 'open' | 'resolve'): stri
 const SOURCE_LABEL: Record<IncidentContext['source'], string> = {
   resource: 'Recurso',
   uptime: 'Uptime',
-  alert: 'Alerta',
 };
 
 function title(incident: Incident, ctx: IncidentContext): string {
