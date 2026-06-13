@@ -26,34 +26,30 @@ export function CostDisplay({
         ? 'text-base font-semibold'
         : 'text-sm font-medium';
 
+  const emptyText = size === 'lg' ? 'text-sm' : 'text-xs';
+
   if (notSupported && amount === 0) {
     return (
-      <div className="flex items-center gap-1.5">
-        <span className={`${cls} text-zinc-400`}>—</span>
-        <span
-          className="text-xs text-zinc-400 inline-flex items-center gap-0.5"
-          title="Este provedor não expõe custo via API pública"
-        >
-          <Info className="h-3 w-3" />
-          não disponível
-        </span>
-      </div>
+      <span
+        className={`inline-flex items-center gap-1 whitespace-nowrap ${emptyText} text-zinc-400`}
+        title="Este provedor não expõe custo via API pública"
+      >
+        <Info className="h-3 w-3 shrink-0" />
+        não disponível
+      </span>
     );
   }
 
   if (notConfigured && amount === 0) {
     return (
-      <div className="flex items-center gap-1.5">
-        <span className={`${cls} text-zinc-400`}>—</span>
-        <Link
-          href={'/docs/cost-tracking' as never}
-          className="text-xs text-violet-600 hover:underline inline-flex items-center gap-0.5"
-          title="Custo não configurado — ver como habilitar"
-        >
-          <Info className="h-3 w-3" />
-          não configurado
-        </Link>
-      </div>
+      <Link
+        href={'/docs/cost-tracking' as never}
+        className={`inline-flex items-center gap-1 whitespace-nowrap ${emptyText} text-violet-600 hover:underline`}
+        title="Custo ainda não configurado — clique para ver como habilitar"
+      >
+        <Info className="h-3 w-3 shrink-0" />
+        configurar custo
+      </Link>
     );
   }
 

@@ -445,6 +445,21 @@ export function FirebaseWizard({ workspaceSlug, workspaceId, workspaceName }: Pr
                 <span className="text-zinc-400 text-xs hidden group-open:inline">▾ recolher</span>
               </summary>
               <div className="px-4 pb-4 pt-3 space-y-4 text-sm text-zinc-700 border-t border-zinc-200">
+                {/* What it is + skippable */}
+                <div className="rounded-lg bg-white border border-zinc-200 p-3 space-y-1.5">
+                  <p className="text-xs text-zinc-600 leading-relaxed">
+                    <strong>O que é:</strong> faz o Nexus mostrar <strong>quanto este projeto gasta</strong> por mês.
+                    É <strong>opcional</strong> — pode pular clicando <em>Próximo</em>; o app monitora todo o resto
+                    (recursos, health, uptime) e o custo fica como “configurar custo” pra ligar depois.
+                  </p>
+                  <p className="text-xs text-zinc-600 leading-relaxed">
+                    Pra ligar, rode o <code className="bg-zinc-100 px-1 rounded font-mono text-[11px]">gcloud</code> abaixo
+                    (dá ao service account permissão de ler o custo).{' '}
+                    <strong>Simples</strong>: deixe a caixa desmarcada (Cloud Monitoring).{' '}
+                    <strong>Detalhado</strong>: marque BigQuery (custo por serviço, mas exige o billing export ligado).
+                  </p>
+                </div>
+
                 {/* BigQuery toggle */}
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input

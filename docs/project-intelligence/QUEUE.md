@@ -90,6 +90,15 @@ Ver `docs/roadmap.md` (16 itens já priorizados).
 - ⬜ Restantes (#2 alerting rules, #3 bulk incidentes, #4 saved filters, #7 canais notif,
   #8 status page pública, #11 runbooks, ...).
 - Nota: uptime incidents ainda não chamam os notifiers (notify() espera resource) — wire depois.
+
+## UI polish backlog (Rafael apontou)
+- ⬜ **Editar app/workspace (nome, descrição, "e tals")** — hoje só dá pra criar + deletar workspace
+  (`/api/workspaces/[id]` só tem DELETE). Adicionar PATCH + UI de edição (rename, descrição, talvez
+  trocar ícone/cor). Reportado 2026-06-12.
+- ✅ **Tutorial do "rastreamento de custo"** (firebase-wizard step 4): bloco "o que é + opcional/pulável
+  + simples (Cloud Monitoring) vs detalhado (BigQuery)". Feito 2026-06-13.
+- ✅ **Card "Custo 30d não configurado" feio** (`cost-display.tsx`): tirado o `—` redundante, virou CTA
+  "configurar custo" 1 linha (`whitespace-nowrap` + ícone `shrink-0`). Feito 2026-06-13.
 - Fix de infra: autopull.sh estava commitado 100644 → cron não rodava (flock permission denied);
   corrigido p/ 100755 + crontab invoca via `bash` (robusto).
 - ⬜ **C retry/backoff** (adiado — baixo ROI + risco de prolongar o lock do collector).
