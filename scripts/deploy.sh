@@ -11,7 +11,9 @@ NEXUS_DIR=${NEXUS_DIR:-/docker/nexus}
 LOG_FILE=${LOG_FILE:-/var/log/nexus-deploy.log}
 # In-container health path. nexus-web sits behind Traefik with port 3000 NOT
 # published to the host, so the gate probes from inside the container, not the host.
-HEALTH_PATH=${HEALTH_PATH:-http://localhost:3000/api/health}
+# 127.0.0.1 (not localhost): the Next.js server binds 0.0.0.0 (IPv4); inside the
+# container `localhost` can resolve to ::1 (IPv6) and refuse the connection.
+HEALTH_PATH=${HEALTH_PATH:-http://127.0.0.1:3000/api/health}
 HEALTH_RETRIES=${HEALTH_RETRIES:-12}
 HEALTH_INTERVAL=${HEALTH_INTERVAL:-5}
 
