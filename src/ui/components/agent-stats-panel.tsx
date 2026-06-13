@@ -11,6 +11,22 @@ export type N8nExecStats = {
   lastRunAt: string | null;
 };
 
+export type FlowInsights = {
+  trigger: 'webhook' | 'schedule' | 'manual' | 'other' | 'none';
+  services: string[];
+  nodeCount: number;
+  aiNodeCount: number;
+  hasErrorHandling: boolean;
+};
+
+const TRIGGER_LABEL: Record<FlowInsights['trigger'], string> = {
+  webhook: 'webhook',
+  schedule: 'agendado',
+  manual: 'manual',
+  other: 'gatilho',
+  none: 'sem gatilho',
+};
+
 /**
  * Agent-run telemetry for an n8n-workflow resource, from the execStats captured by
  * the provider. Presentational — no fetching.
@@ -20,11 +36,13 @@ export function AgentStatsPanel({
   recentTokens,
   recentModel,
   recentTokenCostUsd,
+  flowInsights,
 }: {
   stats?: N8nExecStats | null;
   recentTokens?: number;
   recentModel?: string;
   recentTokenCostUsd?: number;
+  flowInsights?: FlowInsights | null;
 }) {
   if (!stats) return null;
   const pct = Math.round(stats.errorRate * 100);
@@ -54,6 +72,20 @@ export function AgentStatsPanel({
         {recentModel ? ` · modelo ${recentModel}` : ''}
         {stats.lastErrorAt ? ` · último erro ${stats.lastErrorAt.slice(0, 19).replace('T', ' ')}` : ''}
       </p>
+      {flowInsights && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-3 text-xs text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
+          <span className="font-medium text-zinc-700 dark:text-zinc-300">Fluxo:</span>
+          <Badge variant="outline">{TRIGGER_LABEL[flowInsights.trigger]}</Badge>
+          <span>{flowInsights.nodeCount} nós</span>
+          {flowInsights.services.length > 0 && <span>· {flowInsights.services.join(', ')}</span>}
+          {flowInsights.aiNodeCount > 0 && <span>· {flowInsights.aiNodeCount} IA</span>}
+          {flowInsights.hasErrorHandling ? (
+            <Badge variant="active">trata erro</Badge>
+          ) : (
+            <Badge variant="destructive">sem tratamento de erro</Badge>
+          )}
+        </div>
+      )}
     </section>
   );
 }

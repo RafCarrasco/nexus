@@ -15,6 +15,14 @@ function baseUrl(conn: ConnectionView): string {
   return url;
 }
 
+type N8nNode = {
+  type?: string;
+  name?: string;
+  parameters?: Record<string, unknown>;
+  continueOnFail?: boolean;
+  onError?: string;
+};
+
 type N8nWorkflow = {
   id: string;
   name: string;
@@ -22,8 +30,59 @@ type N8nWorkflow = {
   tags?: Array<{ name: string }>;
   createdAt: string;
   updatedAt: string;
-  nodes?: unknown[];
+  nodes?: N8nNode[];
 };
+
+export type FlowInsights = {
+  trigger: 'webhook' | 'schedule' | 'manual' | 'other' | 'none';
+  services: string[]; // friendly names of integrations the flow touches
+  nodeCount: number;
+  aiNodeCount: number;
+  hasErrorHandling: boolean;
+};
+
+const SERVICE_MAP: Array<[RegExp, string]> = [
+  [/webhook/i, 'Webhook'],
+  [/httpRequest/i, 'HTTP'],
+  [/slack/i, 'Slack'],
+  [/gmail|emailSend|sendEmail|microsoftOutlook/i, 'Email'],
+  [/telegram/i, 'Telegram'],
+  [/postgres|mySql|mongoDb|redis|supabase/i, 'DB'],
+  [/googleSheets/i, 'Sheets'],
+  [/googleDrive/i, 'Drive'],
+  [/notion/i, 'Notion'],
+  [/langchain|openAi|anthropic|lmChat|agent/i, 'IA'],
+  [/code|functionItem|\.function/i, 'Code'],
+];
+
+function friendlyService(type: string): string | null {
+  for (const [re, name] of SERVICE_MAP) if (re.test(type)) return name;
+  return null;
+}
+
+/**
+ * Structural analysis of an n8n workflow — Fase 1 of "understand the flows", 100% free
+ * (no LLM): trigger type, integrations touched, AI node count, and error handling, all
+ * derived deterministically from the node list returned by the n8n API.
+ */
+export function analyzeWorkflow(nodes: N8nNode[]): FlowInsights {
+  const types = nodes.map((n) => n.type ?? '').filter(Boolean);
+  const isTrigger = (t: string) => /trigger/i.test(t);
+
+  let trigger: FlowInsights['trigger'] = 'none';
+  if (types.some((t) => /webhook/i.test(t))) trigger = 'webhook';
+  else if (types.some((t) => /(schedule|cron|interval)/i.test(t)) && types.some(isTrigger)) trigger = 'schedule';
+  else if (types.some((t) => /manualTrigger/i.test(t))) trigger = 'manual';
+  else if (types.some(isTrigger)) trigger = 'other';
+
+  const services = [...new Set(types.map(friendlyService).filter((s): s is string => !!s))];
+  const aiNodeCount = types.filter((t) => /langchain|openAi|anthropic|lmChat|agent/i.test(t)).length;
+  const hasErrorHandling =
+    types.some((t) => /errorTrigger/i.test(t)) ||
+    nodes.some((n) => n.continueOnFail === true || typeof n.onError === 'string');
+
+  return { trigger, services, nodeCount: nodes.length, aiNodeCount, hasErrorHandling };
+}
 
 type N8nExecution = {
   id: string;
@@ -185,6 +244,7 @@ export const N8nProvider: Provider = {
             createdAt: w.createdAt,
             updatedAt: w.updatedAt,
             nodeCount: (w.nodes ?? []).length,
+            flowInsights: analyzeWorkflow(w.nodes ?? []),
             execStats: execStats ?? undefined,
             recentTokens: tokenInfo?.tokens,
             recentModel: tokenInfo?.model,

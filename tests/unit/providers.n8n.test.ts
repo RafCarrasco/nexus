@@ -89,7 +89,7 @@ describe('N8nProvider', () => {
 
 // ── Agent observability (Frente B) ─────────────────────────────────────────────
 
-import { sumTokenUsage, findModelName } from '@/providers/n8n';
+import { sumTokenUsage, findModelName, analyzeWorkflow } from '@/providers/n8n';
 
 function routeFetch(routes: Array<[string, unknown]>) {
   return (url: unknown) => {
@@ -122,6 +122,36 @@ describe('sumTokenUsage', () => {
 
   it('returns 0 for payloads with no token fields', () => {
     expect(sumTokenUsage({ a: { b: 1 }, c: 'x' })).toBe(0);
+  });
+});
+
+describe('analyzeWorkflow', () => {
+  it('classifies trigger, services, AI nodes and error handling', () => {
+    const f = analyzeWorkflow([
+      { type: 'n8n-nodes-base.webhook' },
+      { type: 'n8n-nodes-base.httpRequest' },
+      { type: '@n8n/n8n-nodes-langchain.agent', parameters: {} },
+      { type: 'n8n-nodes-base.slack', continueOnFail: true },
+    ]);
+    expect(f.trigger).toBe('webhook');
+    expect(f.services).toEqual(expect.arrayContaining(['Webhook', 'HTTP', 'IA', 'Slack']));
+    expect(f.aiNodeCount).toBe(1);
+    expect(f.nodeCount).toBe(4);
+    expect(f.hasErrorHandling).toBe(true);
+  });
+
+  it('detects schedule trigger and no error handling', () => {
+    const f = analyzeWorkflow([
+      { type: 'n8n-nodes-base.scheduleTrigger' },
+      { type: 'n8n-nodes-base.set' },
+    ]);
+    expect(f.trigger).toBe('schedule');
+    expect(f.aiNodeCount).toBe(0);
+    expect(f.hasErrorHandling).toBe(false);
+  });
+
+  it('handles empty workflow', () => {
+    expect(analyzeWorkflow([])).toMatchObject({ trigger: 'none', nodeCount: 0, services: [] });
   });
 });
 

@@ -12,7 +12,7 @@ import {
   type ServiceInventoryItem,
   type ProjectAuthConfig,
 } from '@/ui/components/service-inventory-panel';
-import { AgentStatsPanel, type N8nExecStats } from '@/ui/components/agent-stats-panel';
+import { AgentStatsPanel, type N8nExecStats, type FlowInsights } from '@/ui/components/agent-stats-panel';
 
 export default async function ResourceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -38,6 +38,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
     recentTokens?: number;
     recentModel?: string;
     recentTokenCostUsd?: number;
+    flowInsights?: FlowInsights | null;
   };
 
   return (
@@ -85,6 +86,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
           recentTokens={meta.recentTokens}
           recentModel={meta.recentModel}
           recentTokenCostUsd={meta.recentTokenCostUsd}
+          flowInsights={meta.flowInsights}
         />
       )}
       <section className="p-6">
