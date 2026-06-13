@@ -14,6 +14,7 @@ import {
 import { TrendingUp, TrendingDown, Minus, Info, ChevronRight } from 'lucide-react';
 import { formatMoney } from '@/lib/money';
 import { avatarColor } from '@/lib/avatar';
+import { useTheme } from '@/ui/components/theme-provider';
 
 type Point = { workspaceId: string; workspaceName: string; date: string; amount: number; currency: string };
 type Workspace = { id: string; name: string };
@@ -49,6 +50,14 @@ export function CostDashboard({
 }) {
   const [range, setRange] = useState<Range>(90);
   const [mode, setMode] = useState<Mode>('stacked');
+
+  // Recharts colors are JS props (not Tailwind), so pick per resolved theme.
+  const { resolved } = useTheme();
+  const dark = resolved === 'dark';
+  const chartGrid = dark ? '#27272A' : '#E4E4E7';
+  const chartTick = dark ? '#A1A1AA' : '#71717A';
+  const chartTipBg = dark ? '#18181B' : '#FFFFFF';
+  const chartLabel = dark ? '#D4D4D8' : '#52525B';
 
   const filtered = useMemo(() => {
     if (range === 0) return points;
@@ -181,15 +190,15 @@ export function CostDashboard({
                   <stop offset="100%" stopColor="#7C3AED" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E4E4E7" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke={chartGrid} vertical={false} />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 11, fill: '#71717A' }}
+                tick={{ fontSize: 11, fill: chartTick }}
                 tickLine={false}
-                axisLine={{ stroke: '#E4E4E7' }}
+                axisLine={{ stroke: chartGrid }}
               />
               <YAxis
-                tick={{ fontSize: 11, fill: '#71717A' }}
+                tick={{ fontSize: 11, fill: chartTick }}
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(v: number) => `$${v.toFixed(0)}`}
@@ -197,12 +206,14 @@ export function CostDashboard({
               <Tooltip
                 contentStyle={{
                   borderRadius: 8,
-                  border: '1px solid #E4E4E7',
+                  border: `1px solid ${chartGrid}`,
+                  backgroundColor: chartTipBg,
+                  color: chartLabel,
                   boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
                   fontSize: 12,
                 }}
                 formatter={(value) => [formatMoney(Number(value ?? 0), currency), '']}
-                labelStyle={{ color: '#52525B', fontSize: 11, marginBottom: 4 }}
+                labelStyle={{ color: chartLabel, fontSize: 11, marginBottom: 4 }}
               />
               {mode !== 'total' && (
                 <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconType="circle" />

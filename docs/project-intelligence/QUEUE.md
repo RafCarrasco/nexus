@@ -98,6 +98,16 @@ Ver `docs/roadmap.md` (16 itens já priorizados).
   #8 status page pública, #11 runbooks, ...).
 - Nota: uptime incidents ainda não chamam os notifiers (notify() espera resource) — wire depois.
 
+## Sprint 2026-06-13 ("faz tudo") — DONE
+- ✅ Editar app (workspace.update: server action + form + PATCH /api/workspaces/[id]).
+- ✅ Fonte de tenant custom (firebase listTenants → fallback coleção `tenants`; pg demo 1/2).
+- ✅ n8n flows Fase 1 (analyzeWorkflow: trigger/serviços/IA/error handling, grátis) + painel.
+- ✅ Alerting rules #2 (AlertRule + migration + evaluateAlert + runAlerts cron + /alerts + nav).
+- ✅ Status page pública #8 (/status/[slug], middleware allowlist, link no workspace).
+- ✅ Recharts dark (cores do gráfico de custo por tema via useTheme).
+- Falta da fila: OpenClaw (bloqueado), n8n flows Fase 2-3 (regras/resumo), token→custo (feito antes),
+  notifiers pra uptime/alert incidents (notify() espera resource — wire quando fizer canais #7).
+
 ## UI polish backlog (Rafael apontou)
 - ⬜ **Editar app/workspace (nome, descrição, "e tals")** — hoje só dá pra criar + deletar workspace
   (`/api/workspaces/[id]` só tem DELETE). Adicionar PATCH + UI de edição (rename, descrição, talvez
