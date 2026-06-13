@@ -15,6 +15,7 @@ model Workspace {
   updatedAt    DateTime      @updatedAt
   connections  Connection[]
   uptimeChecks UptimeCheck[]
+  alertRules   AlertRule[]
 }
 
 model Connection {
@@ -91,6 +92,7 @@ model Incident {
   id            String       @id @default(cuid())
   resourceId    String?
   uptimeCheckId String?
+  alertRuleId   String?
   type          String
   severity      String
   message       String
@@ -99,8 +101,26 @@ model Incident {
   payload       Json?
   resource      Resource?    @relation(fields: [resourceId], references: [id], onDelete: Cascade)
   uptimeCheck   UptimeCheck? @relation(fields: [uptimeCheckId], references: [id], onDelete: Cascade)
+  alertRule     AlertRule?   @relation(fields: [alertRuleId], references: [id], onDelete: Cascade)
 
   @@index([resolvedAt, openedAt])
+}
+
+model AlertRule {
+  id          String     @id @default(cuid())
+  name        String
+  metric      String // 'cost_30d' | 'open_incidents'
+  operator    String     @default("gt") // 'gt' | 'lt'
+  threshold   Float
+  workspaceId String? // null = global
+  enabled     Boolean    @default(true)
+  isFiring    Boolean    @default(false)
+  lastValue   Float?
+  lastEvalAt  DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  incidents   Incident[]
 }
 
 model UptimeCheck {
