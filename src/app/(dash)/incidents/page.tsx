@@ -1,17 +1,44 @@
 import { CheckCircle2 } from 'lucide-react';
 import { prisma } from '@/db/client';
+import { auth } from '@/auth/config';
 import { PageHeader } from '@/ui/components/page-header';
+import { SavedFilters, type SavedFilterEntry } from '@/ui/components/saved-filters';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { BulkResolveBar, type OpenRow } from './bulk-resolve-bar';
 
-export default async function IncidentsPage() {
+export default async function IncidentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ severity?: string; type?: string }>;
+}) {
+  const { severity, type } = await searchParams;
+  // Defensive spread-if-present (never string-concat into a query).
+  const incidentFilter = {
+    ...(severity ? { severity } : {}),
+    ...(type ? { type } : {}),
+  };
+
+  const session = await auth();
+  const userId = (session?.user as { id?: string } | undefined)?.id;
+  const savedFilters = userId
+    ? await prisma.savedFilter.findMany({
+        where: { userId, page: 'incidents' },
+        orderBy: { name: 'asc' },
+      })
+    : [];
+  const filterEntries: SavedFilterEntry[] = savedFilters.map((f) => ({
+    id: f.id,
+    name: f.name,
+    query: (f.query ?? {}) as Record<string, string>,
+  }));
+
   const open = await prisma.incident.findMany({
-    where: { resolvedAt: null },
+    where: { resolvedAt: null, ...incidentFilter },
     orderBy: { openedAt: 'desc' },
     include: { resource: { include: { connection: true } }, uptimeCheck: true, alertRule: true },
   });
   const recent = await prisma.incident.findMany({
-    where: { resolvedAt: { not: null } },
+    where: { resolvedAt: { not: null }, ...incidentFilter },
     orderBy: { resolvedAt: 'desc' },
     take: 50,
     include: { resource: true, uptimeCheck: true, alertRule: true },
@@ -29,7 +56,10 @@ export default async function IncidentsPage() {
   if (open.length === 0 && recent.length === 0) {
     return (
       <div className="space-y-8">
-        <PageHeader title="Incidentes" />
+        <div className="flex items-start justify-between gap-2">
+          <PageHeader title="Incidentes" />
+          <SavedFilters page="incidents" filters={filterEntries} />
+        </div>
         <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-12 text-center space-y-4 shadow-sm">
           <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
           <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Tudo tranquilo por aqui</h3>
@@ -43,10 +73,13 @@ export default async function IncidentsPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        title="Incidentes"
-        subtitle={open.length > 0 ? `${open.length} incidente${open.length !== 1 ? 's' : ''} aberto${open.length !== 1 ? 's' : ''}` : undefined}
-      />
+      <div className="flex items-start justify-between gap-2">
+        <PageHeader
+          title="Incidentes"
+          subtitle={open.length > 0 ? `${open.length} incidente${open.length !== 1 ? 's' : ''} aberto${open.length !== 1 ? 's' : ''}` : undefined}
+        />
+        <SavedFilters page="incidents" filters={filterEntries} />
+      </div>
 
       {/* Open incidents */}
       <section className="space-y-3">

@@ -1,15 +1,30 @@
 import Link from 'next/link';
 import { Boxes } from 'lucide-react';
 import { prisma } from '@/db/client';
+import { auth } from '@/auth/config';
 import { PageHeader } from '@/ui/components/page-header';
 import { Badge } from '@/ui/components/badge';
 import { Button } from '@/ui/components/button';
+import { SavedFilters, type SavedFilterEntry } from '@/ui/components/saved-filters';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 
 type Search = { client?: string; type?: string; q?: string };
 
 export default async function ResourcesPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
+  const session = await auth();
+  const userId = (session?.user as { id?: string } | undefined)?.id;
+  const savedFilters = userId
+    ? await prisma.savedFilter.findMany({
+        where: { userId, page: 'resources' },
+        orderBy: { name: 'asc' },
+      })
+    : [];
+  const filterEntries: SavedFilterEntry[] = savedFilters.map((f) => ({
+    id: f.id,
+    name: f.name,
+    query: (f.query ?? {}) as Record<string, string>,
+  }));
   const rows = await prisma.resource.findMany({
     where: {
       ...(sp.client ? { clientId: sp.client } : {}),
@@ -29,30 +44,33 @@ export default async function ResourcesPage({ searchParams }: { searchParams: Pr
       </p>
 
       {/* Filter bar */}
-      <form className="flex items-center gap-2 text-sm">
-        <input
-          name="q"
-          defaultValue={sp.q ?? ''}
-          placeholder="buscar…"
-          className="rounded-md border border-zinc-200 dark:border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white dark:bg-zinc-900"
-        />
-        <select
-          name="type"
-          defaultValue={sp.type ?? ''}
-          className="rounded-md border border-zinc-200 dark:border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white dark:bg-zinc-900"
-        >
-          <option value="">todos os tipos</option>
-          <option value="firebase">firebase</option>
-          <option value="supabase">supabase</option>
-          <option value="docker">docker</option>
-        </select>
-        <button
-          type="submit"
-          className="rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-        >
-          Filtrar
-        </button>
-      </form>
+      <div className="flex items-center justify-between gap-2">
+        <form className="flex items-center gap-2 text-sm">
+          <input
+            name="q"
+            defaultValue={sp.q ?? ''}
+            placeholder="buscar…"
+            className="rounded-md border border-zinc-200 dark:border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white dark:bg-zinc-900"
+          />
+          <select
+            name="type"
+            defaultValue={sp.type ?? ''}
+            className="rounded-md border border-zinc-200 dark:border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white dark:bg-zinc-900"
+          >
+            <option value="">todos os tipos</option>
+            <option value="firebase">firebase</option>
+            <option value="supabase">supabase</option>
+            <option value="docker">docker</option>
+          </select>
+          <button
+            type="submit"
+            className="rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+          >
+            Filtrar
+          </button>
+        </form>
+        <SavedFilters page="resources" filters={filterEntries} />
+      </div>
 
       {/* Empty state */}
       {rows.length === 0 && (

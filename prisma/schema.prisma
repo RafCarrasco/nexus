@@ -173,6 +173,20 @@ model User {
   sessions      Session[]
   createdAt     DateTime   @default(now())
   auditEntries  AuditLog[]
+  savedFilters  SavedFilter[]
+}
+
+model SavedFilter {
+  id        String   @id @default(cuid())
+  userId    String
+  page      String
+  name      String
+  query     Json
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, page, name])
+  @@index([userId, page])
 }
 
 model Account {
