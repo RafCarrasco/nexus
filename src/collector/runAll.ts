@@ -6,7 +6,11 @@ export async function runAll(): Promise<void> {
   const conns = await prisma.connection.findMany({ where: { status: { not: 'paused' } } });
   log.info('collector.runAll start', { count: conns.length });
   for (const c of conns) {
-    await runCollection(c.id);
+    try {
+      await runCollection(c.id);
+    } catch (e) {
+      log.error('runCollection failed', { connectionId: c.id, err: (e as Error).message });
+    }
   }
   log.info('collector.runAll done');
 }

@@ -34,7 +34,19 @@ export async function runUptime(now: Date = new Date()): Promise<void> {
         },
       });
 
-      if (t.openIncident) {
+      // evaluateUptime only signals openIncident on the down *transition*. A check stuck
+      // 'down' therefore won't re-open after an operator manually resolves while it's still
+      // failing — the incident stays masked. Guard: if the probe failed and we're already
+      // down but no transition fired, ensure an open incident exists (idempotent findFirst).
+      let shouldOpen = t.openIncident;
+      if (!shouldOpen && !probe.ok && t.lastStatus === 'down') {
+        const existing = await prisma.incident.findFirst({
+          where: { uptimeCheckId: c.id, type: 'uptime_down', resolvedAt: null },
+        });
+        if (!existing) shouldOpen = true;
+      }
+
+      if (shouldOpen) {
         const inc = await prisma.incident.create({
           data: {
             uptimeCheckId: c.id,
@@ -58,17 +70,19 @@ export async function runUptime(now: Date = new Date()): Promise<void> {
           where: { uptimeCheckId: c.id, type: 'uptime_down', resolvedAt: null },
           select: { id: true },
         });
-        if (open.length > 0) {
+        const ids = open.map((i) => i.id);
+        if (ids.length > 0) {
           await prisma.incident.updateMany({
-            where: { id: { in: open.map((i) => i.id) }, resolvedAt: null },
+            where: { id: { in: ids }, resolvedAt: null },
             data: { resolvedAt: now },
           });
         }
         log.info('uptime recovered', { check: c.name, url: c.url });
         try {
           const ctx = buildUptimeContext(c, 'resolve');
-          for (const i of open) {
-            const inc = await prisma.incident.findUniqueOrThrow({ where: { id: i.id } });
+          // Re-fetch in one query AFTER the update so resolvedAt is stamped (notify-format reads it).
+          const resolved = ids.length > 0 ? await prisma.incident.findMany({ where: { id: { in: ids } } }) : [];
+          for (const inc of resolved) {
             for (const n of listNotifiers()) await n.notify(inc, ctx);
           }
         } catch (e) {

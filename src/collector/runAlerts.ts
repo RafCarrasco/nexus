@@ -49,7 +49,19 @@ export async function runAlerts(now: Date = new Date()): Promise<void> {
         data: { isFiring: ev.firing, lastValue: value, lastEvalAt: now },
       });
 
-      if (ev.openIncident) {
+      // evaluateAlert only signals openIncident on the firing *transition*. A rule that was
+      // already firing (rule.isFiring) won't re-open after an operator manually resolves its
+      // incident while it's still firing — the incident stays masked. Guard: if still firing
+      // and already-firing but no transition fired, ensure an open incident exists.
+      let shouldOpen = ev.openIncident;
+      if (!shouldOpen && ev.firing && rule.isFiring) {
+        const existing = await prisma.incident.findFirst({
+          where: { alertRuleId: rule.id, resolvedAt: null },
+        });
+        if (!existing) shouldOpen = true;
+      }
+
+      if (shouldOpen) {
         const cmp = rule.operator === 'lt' ? '<' : '>';
         const inc = await prisma.incident.create({
           data: {
@@ -74,17 +86,19 @@ export async function runAlerts(now: Date = new Date()): Promise<void> {
           where: { alertRuleId: rule.id, resolvedAt: null },
           select: { id: true },
         });
-        if (open.length > 0) {
+        const ids = open.map((i) => i.id);
+        if (ids.length > 0) {
           await prisma.incident.updateMany({
-            where: { id: { in: open.map((i) => i.id) }, resolvedAt: null },
+            where: { id: { in: ids }, resolvedAt: null },
             data: { resolvedAt: now },
           });
         }
         log.info('alert recovered', { rule: rule.name, value });
         try {
           const ctx = buildAlertContext(rule, 'resolve');
-          for (const i of open) {
-            const inc = await prisma.incident.findUniqueOrThrow({ where: { id: i.id } });
+          // Re-fetch in one query AFTER the update so resolvedAt is stamped (notify-format reads it).
+          const resolved = ids.length > 0 ? await prisma.incident.findMany({ where: { id: { in: ids } } }) : [];
+          for (const inc of resolved) {
             for (const n of listNotifiers()) await n.notify(inc, ctx);
           }
         } catch (e) {
