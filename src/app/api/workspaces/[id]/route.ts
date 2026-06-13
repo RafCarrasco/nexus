@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/db/client';
-import { authOrE2E } from '@/auth/config';
+import { assertApiRole } from '@/auth/guards';
 import { writeAudit } from '@/lib/audit';
 
 export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const session = await authOrE2E(req);
-  const user = session?.user as { id?: string; role?: string } | undefined;
-  if (user?.role !== 'admin' && user?.role !== 'member') {
-    return new NextResponse('forbidden', { status: 403 });
-  }
+  const gate = await assertApiRole(req, ['admin', 'member']);
+  if (gate.response) return gate.response;
+  const user = gate.user;
   const { id } = await ctx.params;
   await prisma.workspace.delete({ where: { id } });
   await writeAudit({ userId: user?.id, action: 'workspace.delete', target: id });
@@ -16,11 +14,9 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
 }
 
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const session = await authOrE2E(req);
-  const user = session?.user as { id?: string; role?: string } | undefined;
-  if (user?.role !== 'admin' && user?.role !== 'member') {
-    return new NextResponse('forbidden', { status: 403 });
-  }
+  const gate = await assertApiRole(req, ['admin', 'member']);
+  if (gate.response) return gate.response;
+  const user = gate.user;
   const { id } = await ctx.params;
   const body = (await req.json()) as { name?: string; description?: string | null };
   const name = body.name?.trim();

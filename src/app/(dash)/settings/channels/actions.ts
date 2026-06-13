@@ -1,6 +1,7 @@
 'use server';
 import { prisma } from '@/db/client';
-import { auth } from '@/auth/config';
+// Channels carry secrets — gate every mutation behind admin, like settings/clients.
+import { requireAdmin } from '@/auth/guards';
 import { writeAudit } from '@/lib/audit';
 import { encrypt } from '@/crypto/vault';
 import { isSafePublicHttpUrl } from '@/lib/http';
@@ -10,14 +11,6 @@ import type { Incident } from '@prisma/client';
 import type { IncidentContext } from '@/notify/types';
 
 const CHANNEL_TYPES = new Set(['webhook', 'slack', 'teams', 'email']);
-
-/** Channels carry secrets — gate every mutation behind admin, like settings/clients. */
-async function requireAdmin() {
-  const session = await auth();
-  const user = session?.user as { id?: string; role?: string } | undefined;
-  if (user?.role !== 'admin') throw new Error('forbidden');
-  return user;
-}
 
 export async function createChannel(formData: FormData) {
   const user = await requireAdmin();

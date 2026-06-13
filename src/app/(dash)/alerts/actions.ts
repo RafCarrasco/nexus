@@ -1,15 +1,8 @@
 'use server';
 import { prisma } from '@/db/client';
-import { auth } from '@/auth/config';
+import { requireWriter } from '@/auth/guards';
 import { writeAudit } from '@/lib/audit';
 import { revalidatePath } from 'next/cache';
-
-async function requireWriter() {
-  const session = await auth();
-  const user = session?.user as { id?: string; role?: string } | undefined;
-  if (user?.role !== 'admin' && user?.role !== 'member') throw new Error('forbidden');
-  return user;
-}
 
 const METRICS = ['cost_30d', 'open_incidents'];
 

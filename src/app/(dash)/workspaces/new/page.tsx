@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/db/client';
-import { auth } from '@/auth/config';
+import { requireWriter } from '@/auth/guards';
 import { PageHeader } from '@/ui/components/page-header';
 import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
@@ -14,11 +14,7 @@ function slugify(name: string): string {
 
 async function createWorkspace(formData: FormData) {
   'use server';
-  const session = await auth();
-  const role = (session?.user as { role?: string })?.role;
-  if (role !== 'admin' && role !== 'member') {
-    throw new Error('forbidden');
-  }
+  await requireWriter();
   const name = String(formData.get('name') ?? '').trim();
   const description = String(formData.get('description') ?? '').trim() || null;
   if (!name) throw new Error('name required');

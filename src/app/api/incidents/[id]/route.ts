@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/db/client';
-import { authOrE2E } from '@/auth/config';
+import { assertApiRole } from '@/auth/guards';
 import { writeAudit } from '@/lib/audit';
 import { notifyResolvedIncidents } from '@/notify/resolve';
 
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const session = await authOrE2E(req);
-  const user = session?.user as { id?: string; role?: string } | undefined;
-  if (user?.role !== 'admin' && user?.role !== 'member') {
-    return new NextResponse('forbidden', { status: 403 });
-  }
+  const gate = await assertApiRole(req, ['admin', 'member']);
+  if (gate.response) return gate.response;
+  const user = gate.user;
   const body = (await req.json()) as { resolved?: boolean };
   const { id } = await ctx.params;
 

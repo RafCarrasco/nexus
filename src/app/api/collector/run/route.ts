@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
-import { authOrE2E } from '@/auth/config';
+import { assertApiRole } from '@/auth/guards';
 import { writeAudit } from '@/lib/audit';
 import { runAll } from '@/collector/runAll';
 import { runCost } from '@/collector/runCost';
 
 export async function POST(req: Request) {
-  const session = await authOrE2E(req);
-  const user = session?.user as { id?: string; role?: string } | undefined;
-  if (user?.role !== 'admin') {
-    return new NextResponse('forbidden', { status: 403 });
-  }
+  const gate = await assertApiRole(req, ['admin']);
+  if (gate.response) return gate.response;
+  const user = gate.user;
   const url = new URL(req.url);
   const which = url.searchParams.get('kind') ?? 'all';
   if (which === 'cost') {

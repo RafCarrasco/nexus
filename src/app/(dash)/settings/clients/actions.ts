@@ -1,11 +1,10 @@
 'use server';
 import { prisma } from '@/db/client';
-import { auth } from '@/auth/config';
+import { requireAdmin } from '@/auth/guards';
 import { revalidatePath } from 'next/cache';
 
 export async function createClient(formData: FormData) {
-  const session = await auth();
-  if ((session?.user as { role?: string })?.role !== 'admin') throw new Error('forbidden');
+  await requireAdmin();
   const name = String(formData.get('name') ?? '').trim();
   if (!name) return;
   await prisma.client.create({ data: { name } });
@@ -13,8 +12,7 @@ export async function createClient(formData: FormData) {
 }
 
 export async function deleteClient(formData: FormData) {
-  const session = await auth();
-  if ((session?.user as { role?: string })?.role !== 'admin') throw new Error('forbidden');
+  await requireAdmin();
   const id = String(formData.get('id') ?? '');
   await prisma.client.delete({ where: { id } });
   revalidatePath('/settings/clients');

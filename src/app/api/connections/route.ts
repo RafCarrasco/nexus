@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/db/client';
 import { encrypt } from '@/crypto/vault';
 import { authOrE2E } from '@/auth/config';
+import { assertApiRole } from '@/auth/guards';
 import { writeAudit } from '@/lib/audit';
 import { getProvider, listProviderTypes } from '@/providers/registry';
 
@@ -27,10 +28,10 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const session = await authOrE2E(req);
-  const user = session?.user as { id?: string; role?: string } | undefined;
-  if (!user?.id) return new NextResponse('unauthorized', { status: 401 });
-  if (user.role !== 'admin') return new NextResponse('forbidden', { status: 403 });
+  const gate = await assertApiRole(req, ['admin']);
+  if (gate.response) return gate.response;
+  const user = gate.user;
+  if (!user.id) return new NextResponse('unauthorized', { status: 401 });
 
   const json = await req.json();
   const parse = createSchema.safeParse(json);

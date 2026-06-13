@@ -1,11 +1,10 @@
 'use server';
 import { prisma } from '@/db/client';
-import { auth } from '@/auth/config';
+import { requireAdmin } from '@/auth/guards';
 import { revalidatePath } from 'next/cache';
 
 export async function setResourceClient(formData: FormData) {
-  const session = await auth();
-  if ((session?.user as { role?: string })?.role !== 'admin') throw new Error('forbidden');
+  await requireAdmin();
   const id = String(formData.get('resourceId'));
   const clientId = String(formData.get('clientId') ?? '');
   const pctRaw = String(formData.get('allocationPct') ?? '');
@@ -18,8 +17,7 @@ export async function setResourceClient(formData: FormData) {
 }
 
 export async function setTenantClient(formData: FormData) {
-  const session = await auth();
-  if ((session?.user as { role?: string })?.role !== 'admin') throw new Error('forbidden');
+  await requireAdmin();
   const id = String(formData.get('tenantId'));
   const clientId = String(formData.get('clientId') ?? '');
   await prisma.tenant.update({
