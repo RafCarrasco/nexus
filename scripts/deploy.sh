@@ -9,7 +9,9 @@ set -euo pipefail
 
 NEXUS_DIR=${NEXUS_DIR:-/docker/nexus}
 LOG_FILE=${LOG_FILE:-/var/log/nexus-deploy.log}
-HEALTH_URL=${HEALTH_URL:-http://localhost:3000/api/health}
+# In-container health path. nexus-web sits behind Traefik with port 3000 NOT
+# published to the host, so the gate probes from inside the container, not the host.
+HEALTH_PATH=${HEALTH_PATH:-http://localhost:3000/api/health}
 HEALTH_RETRIES=${HEALTH_RETRIES:-12}
 HEALTH_INTERVAL=${HEALTH_INTERVAL:-5}
 
@@ -58,11 +60,11 @@ docker compose run --rm nexus-web npx prisma migrate deploy
 echo "Recreating web container..."
 docker compose up -d nexus-web
 
-echo "Health gate: $HEALTH_URL"
+echo "Health gate (in-container): $HEALTH_PATH"
 for i in $(seq 1 "$HEALTH_RETRIES"); do
   sleep "$HEALTH_INTERVAL"
-  code=$(curl -fsS -o /dev/null -w '%{http_code}' "$HEALTH_URL" 2>/dev/null || echo 000)
-  if [ "$code" = "200" ]; then
+  # wget exits 0 only on a 2xx response; /api/health returns 503 when the DB is down.
+  if docker compose exec -T nexus-web wget -q -O /dev/null "$HEALTH_PATH" 2>/dev/null; then
     trap - ERR
     echo "Healthy after ${i} attempt(s)."
     docker compose ps
@@ -71,7 +73,7 @@ for i in $(seq 1 "$HEALTH_RETRIES"); do
     echo "============================================"
     exit 0
   fi
-  echo "Health attempt ${i}/${HEALTH_RETRIES}: HTTP ${code}"
+  echo "Health attempt ${i}/${HEALTH_RETRIES}: not ready"
 done
 
 # Never became healthy — trap fires rollback.
