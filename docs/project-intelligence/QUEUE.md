@@ -83,6 +83,13 @@ Ver `docs/roadmap.md` (16 itens já priorizados).
 - ✅ **#6 Dark mode** — JÁ ESTAVA PRONTO (ThemeProvider no layout + ThemeToggle + classes `dark:`).
 - ✅ **#10 Cost forecasting** — `src/lib/forecast.ts` `forecastCost` (regressão linear, 30d) + card na cost page.
 - ✅ **#9 Compare-period** — `compareCostPeriods` (30d vs anteriores, delta%) + card na cost page.
-- ⬜ Restantes (#1 uptime checks, #2 alerting rules, #3 bulk incidentes, #4 saved filters, #7 canais notif,
-  #8 status page pública, #11 runbooks, ...). uptime já têm base: `/api/health` + `probePublicUrl`.
+- ✅ **#1 Uptime checks** — `UptimeCheck` model + `evaluateUptime` (state machine com debounce de N
+  falhas) + `probeUptimeUrl` + `runUptime` (cron a cada 1min, self-gate por intervalSec) + página
+  `/uptime` + nav. Incidentes podem ser de check OU resource (`Incident.resourceId` agora opcional +
+  `uptimeCheckId`). Migration escrita à mão, validada no CI, aplicada no prod. 6 testes.
+- ⬜ Restantes (#2 alerting rules, #3 bulk incidentes, #4 saved filters, #7 canais notif,
+  #8 status page pública, #11 runbooks, ...).
+- Nota: uptime incidents ainda não chamam os notifiers (notify() espera resource) — wire depois.
+- Fix de infra: autopull.sh estava commitado 100644 → cron não rodava (flock permission denied);
+  corrigido p/ 100755 + crontab invoca via `bash` (robusto).
 - ⬜ **C retry/backoff** (adiado — baixo ROI + risco de prolongar o lock do collector).
