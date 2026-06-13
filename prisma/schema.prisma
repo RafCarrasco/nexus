@@ -148,6 +148,20 @@ model Client {
   createdAt DateTime @default(now())
 }
 
+model NotificationChannel {
+  id              String    @id @default(cuid())
+  name            String
+  type            String // 'webhook' | 'slack' | 'teams' | 'email'
+  config          Bytes // encrypted: {url} for webhook/slack/teams, {host,port,user,pass,from,to} for email
+  enabled         Boolean   @default(true)
+  notifyOnOpen    Boolean   @default(true)
+  notifyOnResolve Boolean   @default(true)
+  lastError       String?
+  lastFiredAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
 model User {
   id            String     @id @default(cuid())
   email         String     @unique

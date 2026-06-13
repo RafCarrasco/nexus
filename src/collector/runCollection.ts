@@ -5,6 +5,7 @@ import { decrypt } from '@/crypto/vault';
 import { tryConnectionLock, releaseConnectionLock } from './lock';
 import { log } from '@/lib/logger';
 import { listNotifiers } from '@/notify/registry';
+import { buildResourceContext } from '@/notify/context';
 
 export async function runCollection(connectionId: string): Promise<void> {
   const acquired = await tryConnectionLock(connectionId);
@@ -100,12 +101,14 @@ export async function runCollection(connectionId: string): Promise<void> {
 }
 
 async function markError(connectionId: string, message: string, resourceId: string | null) {
-  await prisma.connection.update({
+  const conn = await prisma.connection.update({
     where: { id: connectionId },
     data: { status: 'error', lastError: message, lastCollectedAt: new Date() },
   });
 
-  // Attach incident to existing or synthetic placeholder resource.
+  // Attach incident to existing or synthetic placeholder resource. The synthetic
+  // '__connection__' resource is named after the connection so the channel label
+  // reads as the connection, not the literal "connection".
   const target =
     resourceId ??
     (await prisma.resource.findFirst({ where: { connectionId } }))?.id ??
@@ -114,7 +117,7 @@ async function markError(connectionId: string, message: string, resourceId: stri
         data: {
           connectionId,
           externalId: '__connection__',
-          name: 'connection',
+          name: conn.name,
           kind: 'connection',
           metadata: {},
         },
@@ -130,7 +133,8 @@ async function markError(connectionId: string, message: string, resourceId: stri
     },
   });
   const resource = await prisma.resource.findUniqueOrThrow({ where: { id: target } });
-  for (const n of listNotifiers()) await n.notify(incident, resource);
+  const ctx = buildResourceContext(resource, 'open');
+  for (const n of listNotifiers()) await n.notify(incident, ctx);
 }
 
 async function openIncidentOnce(resourceId: string, type: string, severity: string, message: string) {
@@ -138,12 +142,27 @@ async function openIncidentOnce(resourceId: string, type: string, severity: stri
   if (existing) return;
   const inc = await prisma.incident.create({ data: { resourceId, type, severity, message } });
   const resource = await prisma.resource.findUniqueOrThrow({ where: { id: resourceId } });
-  for (const n of listNotifiers()) await n.notify(inc, resource);
+  const ctx = buildResourceContext(resource, 'open');
+  for (const n of listNotifiers()) await n.notify(inc, ctx);
 }
 
 async function resolveOpen(resourceId: string, type: string) {
-  await prisma.incident.updateMany({
+  // Select-then-update so we know exactly which incidents we resolved this tick and
+  // can fire resolve notifications for each (updateMany alone gives only a count).
+  const open = await prisma.incident.findMany({
     where: { resourceId, type, resolvedAt: null },
-    data: { resolvedAt: new Date() },
+    select: { id: true },
   });
+  if (open.length === 0) return;
+  const resolvedAt = new Date();
+  await prisma.incident.updateMany({
+    where: { id: { in: open.map((i) => i.id) }, resolvedAt: null },
+    data: { resolvedAt },
+  });
+  const resource = await prisma.resource.findUniqueOrThrow({ where: { id: resourceId } });
+  const ctx = buildResourceContext(resource, 'resolve');
+  for (const i of open) {
+    const inc = await prisma.incident.findUniqueOrThrow({ where: { id: i.id } });
+    for (const n of listNotifiers()) await n.notify(inc, ctx);
+  }
 }

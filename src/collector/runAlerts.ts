@@ -1,6 +1,8 @@
 import { prisma } from '@/db/client';
 import { evaluateAlert } from '@/lib/alerting';
 import { log } from '@/lib/logger';
+import { listNotifiers } from '@/notify/registry';
+import { buildAlertContext } from '@/notify/context';
 
 const METRIC_LABEL: Record<string, string> = {
   cost_30d: 'custo 30d',
@@ -49,7 +51,7 @@ export async function runAlerts(now: Date = new Date()): Promise<void> {
 
       if (ev.openIncident) {
         const cmp = rule.operator === 'lt' ? '<' : '>';
-        await prisma.incident.create({
+        const inc = await prisma.incident.create({
           data: {
             alertRuleId: rule.id,
             type: 'alert',
@@ -58,14 +60,36 @@ export async function runAlerts(now: Date = new Date()): Promise<void> {
           },
         });
         log.warn('alert firing', { rule: rule.name, value, threshold: rule.threshold });
+        try {
+          const ctx = buildAlertContext(rule, 'open');
+          for (const n of listNotifiers()) await n.notify(inc, ctx);
+        } catch (e) {
+          log.warn('alert open notify failed', { rule: rule.name, err: (e as Error).message });
+        }
       }
 
       if (ev.resolveIncident) {
-        await prisma.incident.updateMany({
+        // Select-then-update so we can fire resolve notifications for the exact rows.
+        const open = await prisma.incident.findMany({
           where: { alertRuleId: rule.id, resolvedAt: null },
-          data: { resolvedAt: now },
+          select: { id: true },
         });
+        if (open.length > 0) {
+          await prisma.incident.updateMany({
+            where: { id: { in: open.map((i) => i.id) }, resolvedAt: null },
+            data: { resolvedAt: now },
+          });
+        }
         log.info('alert recovered', { rule: rule.name, value });
+        try {
+          const ctx = buildAlertContext(rule, 'resolve');
+          for (const i of open) {
+            const inc = await prisma.incident.findUniqueOrThrow({ where: { id: i.id } });
+            for (const n of listNotifiers()) await n.notify(inc, ctx);
+          }
+        } catch (e) {
+          log.warn('alert resolve notify failed', { rule: rule.name, err: (e as Error).message });
+        }
       }
     } catch (e) {
       log.error('alert eval failed', { rule: rule.name, err: (e as Error).message });

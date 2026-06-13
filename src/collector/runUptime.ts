@@ -2,6 +2,8 @@ import { prisma } from '@/db/client';
 import { probeUptimeUrl } from '@/lib/http';
 import { evaluateUptime } from '@/lib/uptime';
 import { log } from '@/lib/logger';
+import { listNotifiers } from '@/notify/registry';
+import { buildUptimeContext } from '@/notify/context';
 
 /**
  * Probe every enabled uptime check that is due (last check older than its interval),
@@ -33,7 +35,7 @@ export async function runUptime(now: Date = new Date()): Promise<void> {
       });
 
       if (t.openIncident) {
-        await prisma.incident.create({
+        const inc = await prisma.incident.create({
           data: {
             uptimeCheckId: c.id,
             type: 'uptime_down',
@@ -42,14 +44,36 @@ export async function runUptime(now: Date = new Date()): Promise<void> {
           },
         });
         log.warn('uptime down', { check: c.name, url: c.url, fails: t.consecutiveFails });
+        try {
+          const ctx = buildUptimeContext(c, 'open');
+          for (const n of listNotifiers()) await n.notify(inc, ctx);
+        } catch (e) {
+          log.warn('uptime open notify failed', { check: c.name, err: (e as Error).message });
+        }
       }
 
       if (t.resolveIncident) {
-        await prisma.incident.updateMany({
+        // Select-then-update so we can fire resolve notifications for the exact rows.
+        const open = await prisma.incident.findMany({
           where: { uptimeCheckId: c.id, type: 'uptime_down', resolvedAt: null },
-          data: { resolvedAt: now },
+          select: { id: true },
         });
+        if (open.length > 0) {
+          await prisma.incident.updateMany({
+            where: { id: { in: open.map((i) => i.id) }, resolvedAt: null },
+            data: { resolvedAt: now },
+          });
+        }
         log.info('uptime recovered', { check: c.name, url: c.url });
+        try {
+          const ctx = buildUptimeContext(c, 'resolve');
+          for (const i of open) {
+            const inc = await prisma.incident.findUniqueOrThrow({ where: { id: i.id } });
+            for (const n of listNotifiers()) await n.notify(inc, ctx);
+          }
+        } catch (e) {
+          log.warn('uptime resolve notify failed', { check: c.name, err: (e as Error).message });
+        }
       }
     } catch (e) {
       log.error('uptime check failed', { check: c.name, err: (e as Error).message });

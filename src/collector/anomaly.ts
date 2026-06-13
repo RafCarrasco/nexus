@@ -1,6 +1,7 @@
 import { prisma } from '@/db/client';
 import { daysBackUtc } from '@/lib/dates';
 import { listNotifiers } from '@/notify/registry';
+import { buildResourceContext } from '@/notify/context';
 
 const SPIKE_MULTIPLIER = 1.5;
 const SPIKE_FLOOR_USD = 1;
@@ -38,6 +39,7 @@ export async function detectCostSpikes(forDate: Date): Promise<void> {
         payload: { latest: latestAmt, avg7d: avg },
       },
     });
-    for (const n of listNotifiers()) await n.notify(inc, r);
+    const ctx = buildResourceContext(r, 'open');
+    for (const n of listNotifiers()) await n.notify(inc, ctx);
   }
 }
