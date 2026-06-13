@@ -171,6 +171,28 @@ describe('FirebaseProvider', () => {
     expect(t).toEqual([{ externalId: 't1', displayName: 'Acme' }]);
   });
 
+  it('falls back to the tenants Firestore collection when there are no Auth tenants', async () => {
+    listTenants.mockResolvedValue({ tenants: [] });
+    fetchMock.mockImplementation((url: string) =>
+      url.includes('/databases/(default)/documents/tenants')
+        ? Promise.resolve({
+            ok: true,
+            json: async () => ({
+              documents: [
+                { name: 'projects/p/databases/(default)/documents/tenants/d1', fields: { name: { stringValue: 'PGDEMO1' } } },
+                { name: 'projects/p/databases/(default)/documents/tenants/d2', fields: { name: { stringValue: 'PGDEMO2' } } },
+              ],
+            }),
+          })
+        : Promise.resolve({ ok: true, json: async () => ({}) }),
+    );
+    const t = await FirebaseProvider.listTenants(conn, 'project:demo-proj');
+    expect(t).toEqual([
+      { externalId: 'd1', displayName: 'PGDEMO1' },
+      { externalId: 'd2', displayName: 'PGDEMO2' },
+    ]);
+  });
+
   it('returns no tenants for hosting resources', async () => {
     const t = await FirebaseProvider.listTenants(conn, 'hosting:projects/demo-proj/sites/demo-proj');
     expect(t).toEqual([]);

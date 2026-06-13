@@ -145,6 +145,36 @@ async function listFirestoreCollections(conn: ConnectionView, databaseName: stri
   }
 }
 
+type FsDoc = { name: string; fields?: Record<string, { stringValue?: string }> };
+
+/**
+ * App-level tenant source: read a Firestore collection (default "tenants") and map each
+ * doc to a Nexus tenant. Used when the project models multi-tenancy as a collection rather
+ * than Firebase Auth / Identity Platform tenants. Best-effort — empty/denied → []. The
+ * display name comes from a name/displayName/title/nome field, falling back to the doc id.
+ */
+async function listFirestoreTenantDocs(conn: ConnectionView, collection: string): Promise<TenantDTO[]> {
+  try {
+    const token = await googleAccessToken(conn);
+    const pid = projectId(conn);
+    const res = await fetchWithTimeout(
+      `https://firestore.googleapis.com/v1/projects/${pid}/databases/(default)/documents/${encodeURIComponent(collection)}?pageSize=200`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!res.ok) return [];
+    const json = (await res.json()) as { documents?: FsDoc[] };
+    return (json.documents ?? []).map((d) => {
+      const id = d.name.split('/').pop() ?? d.name;
+      const f = d.fields ?? {};
+      const displayName =
+        f.name?.stringValue ?? f.displayName?.stringValue ?? f.title?.stringValue ?? f.nome?.stringValue ?? id;
+      return { externalId: id, displayName };
+    });
+  } catch {
+    return [];
+  }
+}
+
 type StorageBucket = { name: string; location?: string; storageClass?: string; timeCreated?: string };
 
 async function listStorageBuckets(conn: ConnectionView): Promise<StorageBucket[]> {
@@ -449,13 +479,23 @@ export const FirebaseProvider: Provider = {
   async listTenants(conn, externalId): Promise<TenantDTO[]> {
     // Tenants belong to the Auth project — only emit for project resources
     if (!externalId.startsWith('project:')) return [];
+
+    // 1) Firebase Auth / Identity Platform tenants (native multi-tenancy).
     const app = appFor(conn);
     try {
       const r = await getAuth(app).tenantManager().listTenants(1000);
-      return r.tenants.map((t) => ({ externalId: t.tenantId, displayName: t.displayName ?? t.tenantId }));
+      if (r.tenants.length > 0) {
+        return r.tenants.map((t) => ({ externalId: t.tenantId, displayName: t.displayName ?? t.tenantId }));
+      }
     } catch {
-      return [];
+      // not on Identity Platform — fall through to the app-level source
     }
+
+    // 2) App-level source: a Firestore collection of tenants (e.g. PGDEMO1/2 in the core
+    //    app live in a `tenants` collection). Configurable via connection config
+    //    `tenantCollection`; defaults to the common "tenants".
+    const collection = (conn.config.tenantCollection as string | undefined)?.trim() || 'tenants';
+    return listFirestoreTenantDocs(conn, collection);
   },
 
   async validate(conn) {
