@@ -1,0 +1,37 @@
+name: Deploy
+
+# Runs only after CI succeeds on main. Never deploys a red build.
+#
+# SECURITY — why this is safe against fork PRs (do NOT "simplify" to `on: push`):
+# workflow_run fires in the context of the BASE repo and the `branches: [main]`
+# filter matches the triggering run's head_branch. A fork PR's CI runs on the
+# fork's branch (not `main`), so it never satisfies this filter and can never
+# trigger a deploy — fork code cannot reach the VPS or the VPS_SSH_KEY secret.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy to VPS
+    runs-on: ubuntu-latest
+    # Gate: only when the triggering CI run passed.
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    environment: production
+    steps:
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          script_stop: true
+          command_timeout: 15m
+          script: bash /usr/local/bin/nexus-deploy.sh

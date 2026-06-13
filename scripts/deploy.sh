@@ -1,8 +1,17 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+#
+# Nexus deploy — pull main, migrate, rebuild web container, health-gate, rollback on failure.
+# Invoked on the VPS by the GitHub Actions deploy workflow over SSH:
+#   bash /usr/local/bin/nexus-deploy.sh
+#
+# Idempotent: no-ops when already at origin/main. Safe to re-run.
+set -euo pipefail
 
 NEXUS_DIR=${NEXUS_DIR:-/docker/nexus}
 LOG_FILE=${LOG_FILE:-/var/log/nexus-deploy.log}
+HEALTH_URL=${HEALTH_URL:-http://localhost:3000/api/health}
+HEALTH_RETRIES=${HEALTH_RETRIES:-12}
+HEALTH_INTERVAL=${HEALTH_INTERVAL:-5}
 
 exec >> "$LOG_FILE" 2>&1
 echo ""
@@ -12,49 +21,59 @@ echo "============================================"
 
 cd "$NEXUS_DIR"
 
-# Save current commit so we can roll back if needed
 PREVIOUS_SHA=$(git rev-parse HEAD)
-echo "Previous SHA: $PREVIOUS_SHA"
+echo "Current: $PREVIOUS_SHA"
 
-# Pull latest
 git fetch origin main
 NEW_SHA=$(git rev-parse origin/main)
 if [ "$PREVIOUS_SHA" = "$NEW_SHA" ]; then
-  echo "Already at $NEW_SHA, nothing to do."
+  echo "Already at $NEW_SHA — nothing to do."
   exit 0
 fi
+
+rollback() {
+  echo "!! Deploy FAILED — rolling code back to $PREVIOUS_SHA"
+  git reset --hard "$PREVIOUS_SHA" || true
+  docker compose build nexus-web || true
+  docker compose up -d nexus-web || true
+  echo "Rolled back. NOTE: forward DB migrations are not auto-reverted —"
+  echo "keep migrations expand/contract (backward-compatible) so rollback stays safe."
+  docker compose ps || true
+  exit 1
+}
+trap rollback ERR
+
+echo "Updating to $NEW_SHA"
 git reset --hard "$NEW_SHA"
-echo "Updated to: $NEW_SHA"
 
-# Apply any new prisma migrations from prisma/migrations
-echo "Checking for new migrations..."
-for migration_dir in prisma/migrations/*/; do
-  migration_name=$(basename "$migration_dir")
-  applied=$(docker compose exec -T nexus-db psql -U nexus -d nexus -tAc "SELECT 1 FROM _prisma_migrations WHERE migration_name = '$migration_name' LIMIT 1;" 2>/dev/null || echo "")
-  if [ -z "$applied" ]; then
-    echo "Applying migration: $migration_name"
-    cat "$migration_dir/migration.sql" | docker compose exec -T nexus-db psql -U nexus -d nexus
-    # Record it
-    docker compose exec -T nexus-db psql -U nexus -d nexus -c "
-      INSERT INTO _prisma_migrations (id, checksum, migration_name, finished_at, applied_steps_count)
-      VALUES (gen_random_uuid()::text, 'manual', '$migration_name', now(), 1)
-      ON CONFLICT DO NOTHING;
-    " 2>/dev/null || echo "Note: _prisma_migrations table may not exist yet, continuing"
-  fi
-done
-
-# Build + restart web container only
-echo "Building..."
+echo "Building web image..."
 docker compose build nexus-web
 
-echo "Recreating..."
+# Migrate with the freshly built image BEFORE swapping the running container,
+# so the new schema is in place when new code goes live. prisma migrate deploy
+# only applies pending migrations and is a no-op when up to date.
+echo "Applying migrations (prisma migrate deploy)..."
+docker compose run --rm nexus-web npx prisma migrate deploy
+
+echo "Recreating web container..."
 docker compose up -d nexus-web
 
-# Wait for health
-sleep 12
-echo "Final state:"
-docker compose ps
+echo "Health gate: $HEALTH_URL"
+for i in $(seq 1 "$HEALTH_RETRIES"); do
+  sleep "$HEALTH_INTERVAL"
+  code=$(curl -fsS -o /dev/null -w '%{http_code}' "$HEALTH_URL" 2>/dev/null || echo 000)
+  if [ "$code" = "200" ]; then
+    trap - ERR
+    echo "Healthy after ${i} attempt(s)."
+    docker compose ps
+    echo "============================================"
+    echo "Nexus deploy finished OK at $(date -u) → $NEW_SHA"
+    echo "============================================"
+    exit 0
+  fi
+  echo "Health attempt ${i}/${HEALTH_RETRIES}: HTTP ${code}"
+done
 
-echo "============================================"
-echo "Nexus deploy finished at $(date -u)"
-echo "============================================"
+# Never became healthy — trap fires rollback.
+echo "Health gate timed out."
+false

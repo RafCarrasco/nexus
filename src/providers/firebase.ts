@@ -1,6 +1,7 @@
 import { initializeApp, cert, getApps, deleteApp, type App } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { GoogleAuth } from 'google-auth-library';
+import { fetchWithTimeout, isSafePublicHttpUrl } from '@/lib/http';
 import type { Provider, ConnectionView, ResourceDTO, CostDTO, HealthDTO, TenantDTO } from './types';
 
 type SAJson = {
@@ -42,7 +43,6 @@ async function googleAccessToken(
   if (!token) throw new Error('no access token');
   return token;
 }
-
 
 type HostingSite = {
   name: string;
@@ -89,6 +89,134 @@ async function listCloudFunctions(conn: ConnectionView): Promise<CloudFunction[]
   }
 }
 
+// ── Deep service inventory ─────────────────────────────────────────────────────
+// Each helper is best-effort: a denied/absent API (403/404) degrades to empty,
+// never throws — one disabled service must not break the whole collection.
+
+async function listEnabledServices(conn: ConnectionView): Promise<string[]> {
+  try {
+    const token = await googleAccessToken(conn);
+    const pid = projectId(conn);
+    const res = await fetchWithTimeout(
+      `https://serviceusage.googleapis.com/v1/projects/${pid}/services?filter=state:ENABLED&pageSize=200`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!res.ok) return [];
+    const json = (await res.json()) as { services?: Array<{ name?: string; config?: { name?: string } }> };
+    return (json.services ?? [])
+      .map((s) => s.config?.name ?? s.name?.split('/').pop() ?? '')
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+type FirestoreDatabase = { name: string; locationId?: string; type?: string };
+
+async function listFirestoreDatabases(conn: ConnectionView): Promise<FirestoreDatabase[]> {
+  try {
+    const token = await googleAccessToken(conn);
+    const pid = projectId(conn);
+    const res = await fetchWithTimeout(`https://firestore.googleapis.com/v1/projects/${pid}/databases`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { databases?: FirestoreDatabase[] };
+    return json.databases ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** Top-level collection ids for a database (best-effort; databaseName = projects/<pid>/databases/<db>). */
+async function listFirestoreCollections(conn: ConnectionView, databaseName: string): Promise<string[]> {
+  try {
+    const token = await googleAccessToken(conn);
+    const res = await fetchWithTimeout(`https://firestore.googleapis.com/v1/${databaseName}/documents:listCollectionIds`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ pageSize: 100 }),
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { collectionIds?: string[] };
+    return json.collectionIds ?? [];
+  } catch {
+    return [];
+  }
+}
+
+type StorageBucket = { name: string; location?: string; storageClass?: string; timeCreated?: string };
+
+async function listStorageBuckets(conn: ConnectionView): Promise<StorageBucket[]> {
+  try {
+    const token = await googleAccessToken(conn);
+    const pid = projectId(conn);
+    const res = await fetchWithTimeout(`https://storage.googleapis.com/storage/v1/b?project=${pid}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { items?: StorageBucket[] };
+    return json.items ?? [];
+  } catch {
+    return [];
+  }
+}
+
+type RtdbInstance = { name: string; state?: string; databaseUrl?: string; type?: string };
+
+async function listRtdbInstances(conn: ConnectionView): Promise<RtdbInstance[]> {
+  try {
+    const token = await googleAccessToken(conn, ['https://www.googleapis.com/auth/firebase']);
+    const pid = projectId(conn);
+    const res = await fetchWithTimeout(
+      `https://firebasedatabase.googleapis.com/v1beta/projects/${pid}/locations/-/instances`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!res.ok) return [];
+    const json = (await res.json()) as { instances?: RtdbInstance[] };
+    return json.instances ?? [];
+  } catch {
+    return [];
+  }
+}
+
+type AuthConfig = {
+  signIn?: Record<string, { enabled?: boolean }>;
+  authorizedDomains?: string[];
+  mfa?: { state?: string };
+};
+
+async function getAuthConfig(conn: ConnectionView): Promise<AuthConfig | undefined> {
+  try {
+    const token = await googleAccessToken(conn, ['https://www.googleapis.com/auth/firebase']);
+    const pid = projectId(conn);
+    const res = await fetchWithTimeout(`https://identitytoolkit.googleapis.com/admin/v2/projects/${pid}/config`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return undefined;
+    return (await res.json()) as AuthConfig;
+  } catch {
+    return undefined;
+  }
+}
+
+type ServiceInventoryItem = {
+  key: 'firestore' | 'storage' | 'rtdb' | 'auth' | 'hosting' | 'functions';
+  label: string;
+  enabled: boolean;
+  headline?: string;
+};
+
+function authHeadline(cfg?: AuthConfig): string | undefined {
+  if (!cfg) return undefined;
+  const methods = Object.entries(cfg.signIn ?? {})
+    .filter(([, v]) => v?.enabled)
+    .map(([k]) => k);
+  const mfaOn = cfg.mfa?.state === 'ENABLED' || cfg.mfa?.state === 'MANDATORY';
+  if (!methods.length) return cfg.mfa?.state ? `MFA ${cfg.mfa.state}` : undefined;
+  return methods.join(', ') + (mfaOn ? ' · MFA' : '');
+}
+
 export const FirebaseProvider: Provider = {
   type: 'firebase',
 
@@ -129,7 +257,120 @@ export const FirebaseProvider: Provider = {
       },
     }));
 
-    return [projectResource, ...hostingResources, ...functionResources];
+    // Deep inventory — all best-effort, run concurrently.
+    const [enabledServices, firestoreDbs, buckets, rtdbInstances, authConfig] = await Promise.all([
+      listEnabledServices(conn),
+      listFirestoreDatabases(conn),
+      listStorageBuckets(conn),
+      listRtdbInstances(conn),
+      getAuthConfig(conn),
+    ]);
+
+    // Collection ids only for the default database (top-level, best-effort).
+    // Concurrent so multiple databases don't serialize on the collector's lock window.
+    const firestoreResources: ResourceDTO[] = await Promise.all(
+      firestoreDbs.map(async (db) => {
+        const collectionIds = db.name.endsWith('/(default)') ? await listFirestoreCollections(conn, db.name) : [];
+        return {
+          externalId: `firestore:${db.name}`,
+          name: db.name.split('/').pop() ?? db.name,
+          kind: 'firebase-firestore',
+          metadata: {
+            locationId: db.locationId,
+            type: db.type,
+            collectionIds,
+            collectionCount: collectionIds.length,
+            projectId: id,
+          },
+        };
+      }),
+    );
+
+    const storageResources: ResourceDTO[] = buckets.map((b) => ({
+      externalId: `storage:${b.name}`,
+      name: b.name,
+      kind: 'firebase-storage-bucket',
+      metadata: { location: b.location, storageClass: b.storageClass, createdAt: b.timeCreated, projectId: id },
+    }));
+
+    const rtdbResources: ResourceDTO[] = rtdbInstances.map((inst) => ({
+      externalId: `rtdb:${inst.name}`,
+      name: inst.name.split('/').pop() ?? inst.name,
+      kind: 'firebase-rtdb',
+      metadata: { state: inst.state, databaseUrl: inst.databaseUrl, projectId: id },
+    }));
+
+    // Normalized service map for the project overview panel.
+    const enabled = new Set(enabledServices);
+    const has = (api: string) => enabled.has(api);
+    const firestoreCollCount = firestoreResources.reduce(
+      (s, r) => s + ((r.metadata.collectionCount as number) ?? 0),
+      0,
+    );
+    const serviceInventory: ServiceInventoryItem[] = [
+      {
+        key: 'firestore',
+        label: 'Cloud Firestore',
+        enabled: has('firestore.googleapis.com') || firestoreDbs.length > 0,
+        headline: firestoreDbs.length
+          ? `${firestoreDbs.length} banco(s)` + (firestoreCollCount ? ` · ${firestoreCollCount} coleções` : '')
+          : undefined,
+      },
+      {
+        key: 'storage',
+        label: 'Cloud Storage',
+        enabled: has('firebasestorage.googleapis.com') || has('storage.googleapis.com') || buckets.length > 0,
+        headline: buckets.length ? `${buckets.length} bucket(s)` : undefined,
+      },
+      {
+        key: 'rtdb',
+        label: 'Realtime Database',
+        enabled: has('firebasedatabase.googleapis.com') || rtdbInstances.length > 0,
+        headline: rtdbInstances.length ? `${rtdbInstances.length} instância(s)` : undefined,
+      },
+      {
+        key: 'auth',
+        label: 'Authentication',
+        enabled: has('identitytoolkit.googleapis.com') || !!authConfig,
+        headline: authHeadline(authConfig),
+      },
+      {
+        key: 'hosting',
+        label: 'Hosting',
+        enabled: has('firebasehosting.googleapis.com') || sites.length > 0,
+        headline: sites.length ? `${sites.length} site(s)` : undefined,
+      },
+      {
+        key: 'functions',
+        label: 'Cloud Functions',
+        enabled: has('cloudfunctions.googleapis.com') || functions.length > 0,
+        headline: functions.length ? `${functions.length} função(ões)` : undefined,
+      },
+    ];
+
+    projectResource.metadata = {
+      ...projectResource.metadata,
+      serviceInventory,
+      enabledServices,
+      authConfig: authConfig
+        ? {
+            signInMethods: Object.entries(authConfig.signIn ?? {})
+              .filter(([, v]) => v?.enabled)
+              .map(([k]) => k),
+            authorizedDomains: authConfig.authorizedDomains ?? [],
+            mfa: authConfig.mfa?.state,
+          }
+        : undefined,
+    };
+
+    return [
+      projectResource,
+      ...hostingResources,
+      ...functionResources,
+      ...firestoreResources,
+      ...storageResources,
+      ...rtdbResources,
+    ];
   },
 
   async getDailyCost(conn, externalId, date): Promise<CostDTO | null> {
@@ -167,6 +408,15 @@ export const FirebaseProvider: Provider = {
       return { status: 'unknown', message: 'state captured at collection time' };
     }
 
+    // Inventory resources (Firestore/Storage/RTDB): no live probe — avoid spurious incidents.
+    if (
+      externalId.startsWith('firestore:') ||
+      externalId.startsWith('storage:') ||
+      externalId.startsWith('rtdb:')
+    ) {
+      return { status: 'unknown', message: 'inventory resource' };
+    }
+
     // Hosting resources: probe the defaultUrl
     if (externalId.startsWith('hosting:')) {
       try {
@@ -177,7 +427,8 @@ export const FirebaseProvider: Provider = {
         const site = sites.find((s) => s.name === siteName);
         const url = site?.defaultUrl;
         if (!url) return { status: 'unknown', message: 'no defaultUrl' };
-        const res = await fetch(url, { method: 'HEAD' });
+        if (!isSafePublicHttpUrl(url)) return { status: 'unknown', message: 'unsafe defaultUrl' };
+        const res = await fetchWithTimeout(url, { method: 'HEAD' });
         if (res.ok) return { status: 'ok' };
         return { status: 'degraded', message: `HTTP ${res.status}` };
       } catch (e) {

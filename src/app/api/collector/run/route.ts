@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { authOrE2E } from '@/auth/config';
+import { writeAudit } from '@/lib/audit';
 import { runAll } from '@/collector/runAll';
 import { runCost } from '@/collector/runCost';
 
 export async function POST(req: Request) {
   const session = await authOrE2E(req);
-  if ((session?.user as { role?: string })?.role !== 'admin') {
+  const user = session?.user as { id?: string; role?: string } | undefined;
+  if (user?.role !== 'admin') {
     return new NextResponse('forbidden', { status: 403 });
   }
   const url = new URL(req.url);
@@ -19,5 +21,6 @@ export async function POST(req: Request) {
     await runAll();
     await runCost();
   }
+  await writeAudit({ userId: user?.id, action: 'collector.run', target: which });
   return new NextResponse(null, { status: 204 });
 }

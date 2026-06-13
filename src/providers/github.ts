@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from '@/lib/http';
 import type { Provider, ConnectionView, ResourceDTO, CostDTO, HealthDTO, TenantDTO } from './types';
 
 const API = 'https://api.github.com';
@@ -28,7 +29,7 @@ export const GitHubProvider: Provider = {
     const url = org
       ? `${API}/orgs/${org}/repos?per_page=100`
       : `${API}/user/repos?per_page=100`;
-    const res = await fetch(url, { headers: authHeaders(conn) });
+    const res = await fetchWithTimeout(url, { headers: authHeaders(conn) });
     if (!res.ok) throw new Error(`github listResources ${res.status}`);
     const repos = (await res.json()) as GHRepo[];
     return repos.map((r) => ({
@@ -53,7 +54,7 @@ export const GitHubProvider: Provider = {
   // Read pushedAt from metadata stored at list time — avoids extra API call.
   async getLastActivity(conn, externalId): Promise<Date | null> {
     const url = `${API}/repos/${externalId}`;
-    const res = await fetch(url, { headers: authHeaders(conn) });
+    const res = await fetchWithTimeout(url, { headers: authHeaders(conn) });
     if (!res.ok) return null;
     const repo = (await res.json()) as GHRepo;
     return repo.pushed_at ? new Date(repo.pushed_at) : null;
@@ -69,7 +70,7 @@ export const GitHubProvider: Provider = {
   },
 
   async validate(conn): Promise<void> {
-    const res = await fetch(`${API}/user`, { headers: authHeaders(conn) });
+    const res = await fetchWithTimeout(`${API}/user`, { headers: authHeaders(conn) });
     if (!res.ok) throw new Error(`github validate: invalid token (${res.status})`);
   },
 };

@@ -9,6 +9,7 @@ async function cleanup() {
   await prisma.costSnapshot.deleteMany();
   await prisma.resource.deleteMany();
   await prisma.connection.deleteMany();
+  await prisma.auditLog.deleteMany();
   await prisma.user.deleteMany();
 }
 

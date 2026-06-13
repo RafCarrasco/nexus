@@ -1,6 +1,9 @@
 import { prisma } from '@/db/client';
 import { PageHeader } from '@/ui/components/page-header';
 import { CostDashboard } from './cost-dashboard';
+import { forecastCost, compareCostPeriods } from '@/lib/forecast';
+import { formatMoney } from '@/lib/money';
+import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,12 +50,64 @@ export default async function CostPage() {
   const currency = points[0]?.currency ?? 'USD';
   const workspaceList = workspaces.map((w) => ({ id: w.id, name: w.name }));
 
+  // Aggregate per-day totals across everything for a 30-day projection.
+  const dailyMap = new Map<string, number>();
+  for (const p of points) dailyMap.set(p.date, (dailyMap.get(p.date) ?? 0) + p.amount);
+  const daily = [...dailyMap.entries()].map(([date, amount]) => ({ date, amount }));
+  const forecast = forecastCost(daily, 30);
+  const compare = compareCostPeriods(daily, 30);
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Custo"
         subtitle="Acompanhe o gasto de todos os aplicativos ao longo do tempo"
       />
+      {(forecast || compare) && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {forecast && (
+            <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="text-sm text-zinc-500">Projeção próximos 30 dias</div>
+              <div className="mt-1 flex items-baseline gap-3">
+                <span className="text-2xl font-semibold">{formatMoney(forecast.projectedTotal, currency)}</span>
+                <span
+                  className={cn(
+                    'text-sm',
+                    forecast.trend === 'up'
+                      ? 'text-rose-600'
+                      : forecast.trend === 'down'
+                        ? 'text-emerald-600'
+                        : 'text-zinc-500',
+                  )}
+                >
+                  {forecast.trend === 'up' ? '▲ subindo' : forecast.trend === 'down' ? '▼ caindo' : '— estável'}
+                </span>
+              </div>
+              <div className="mt-1 text-xs text-zinc-500">
+                base: {forecast.basisDays} dia(s) · média {formatMoney(forecast.avgDailyRecent, currency)}/dia
+              </div>
+            </div>
+          )}
+          {compare && (
+            <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="text-sm text-zinc-500">Últimos 30 dias vs anteriores</div>
+              <div className="mt-1 flex items-baseline gap-3">
+                <span className="text-2xl font-semibold">{formatMoney(compare.current, currency)}</span>
+                {compare.deltaPct != null && (
+                  <span
+                    className={cn('text-sm', compare.deltaPct > 0 ? 'text-rose-600' : 'text-emerald-600')}
+                  >
+                    {compare.deltaPct > 0 ? '▲' : '▼'} {Math.abs(compare.deltaPct).toFixed(0)}%
+                  </span>
+                )}
+              </div>
+              <div className="mt-1 text-xs text-zinc-500">
+                período anterior: {formatMoney(compare.previous, currency)}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       <CostDashboard points={points} workspaces={workspaceList} currency={currency} />
     </div>
   );

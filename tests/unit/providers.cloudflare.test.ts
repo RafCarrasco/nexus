@@ -75,7 +75,7 @@ describe('CloudflareProvider', () => {
     const fakeResource = { metadata: { name: 'example.com' } };
     const h = await CloudflareProvider.getHealth(conn, 'z1', fakeResource as never);
     expect(h.status).toBe('ok');
-    expect(fetchMock).toHaveBeenCalledWith('https://example.com', { method: 'HEAD' });
+    expect(fetchMock).toHaveBeenCalledWith('https://example.com', expect.objectContaining({ method: 'HEAD' }));
   });
 
   it('getHealth returns unknown for workers', async () => {
