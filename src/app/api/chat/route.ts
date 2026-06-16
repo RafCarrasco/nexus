@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth/config';
-import { loadAiConfig, callLlm, type ChatMsg } from '@/lib/ai';
+import { loadAiConfig, callLlm, buildNexusContext, type ChatMsg } from '@/lib/ai';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,7 +17,8 @@ export async function POST(req: Request) {
   if (!cfg) return new NextResponse('IA não configurada — configure em Configurações → IA', { status: 409 });
 
   try {
-    const reply = await callLlm(cfg, body.messages);
+    const system = await buildNexusContext();
+    const reply = await callLlm(cfg, body.messages, system);
     return NextResponse.json({ reply });
   } catch (e) {
     return new NextResponse((e as Error).message, { status: 502 });
