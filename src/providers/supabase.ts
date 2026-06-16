@@ -11,13 +11,27 @@ function ymd(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * Supabase Personal Access Tokens are account-wide — they can't be scoped to one
+ * project. To track only specific projects, the operator may set `projectRefs`
+ * (array, or a comma/space-separated string of project refs); listResources then
+ * returns only those. Empty/unset = all projects the token can see.
+ */
+function parseProjectRefs(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter(Boolean);
+  if (typeof v === 'string') return v.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
+  return [];
+}
+
 export const SupabaseProvider: Provider = {
   type: 'supabase',
 
   async listResources(conn): Promise<ResourceDTO[]> {
     const res = await fetchWithTimeout(`${API}/v1/projects`, { headers: authHeaders(conn) });
     if (!res.ok) throw new Error(`supabase listResources ${res.status}`);
-    const projects = (await res.json()) as Array<{ id: string; name: string; region?: string }>;
+    let projects = (await res.json()) as Array<{ id: string; name: string; region?: string }>;
+    const refs = parseProjectRefs(conn.config.projectRefs);
+    if (refs.length) projects = projects.filter((p) => refs.includes(p.id));
     return projects.map((p) => ({
       externalId: p.id,
       name: p.name,

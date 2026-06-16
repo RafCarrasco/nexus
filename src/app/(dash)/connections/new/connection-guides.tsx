@@ -15,13 +15,15 @@ export const CONNECTION_GUIDES: Record<string, Guide> = {
     steps: [
       { text: 'No Supabase, abra Account → Access Tokens.', href: 'https://supabase.com/dashboard/account/tokens', linkLabel: 'abrir Access Tokens' },
       { text: 'Clique em "Generate new token", dê um nome (ex.: nexus) e copie o valor sbp_… — ele aparece só uma vez.' },
+      { text: 'Para acompanhar só projetos específicos, pegue o ref de cada um: está na URL do projeto, dashboard/project/<ref>. Liste em projectRefs (separados por vírgula).' },
       { text: '(Opcional, para custo) pegue o slug da organização: está na URL dashboard/org/<slug> ou em Organization Settings.' },
     ],
     fields: [
       { key: 'token', required: true, hint: 'Personal Access Token da Management API (começa com sbp_).' },
+      { key: 'projectRefs', required: false, hint: 'Refs dos projetos a acompanhar (vírgula ou lista). Em branco = todos os projetos da conta.' },
       { key: 'orgSlug', required: false, hint: 'Slug da organização — só necessário para puxar custo/billing.' },
     ],
-    note: 'O token enxerga TODOS os projetos da conta — cada projeto vira um recurso no Nexus (não dá para escopar a um único projeto).',
+    note: 'O token do Supabase enxerga TODOS os projetos da conta. Para trazer só um (ou alguns), preencha projectRefs — senão vem tudo junto.',
   },
   vercel: {
     monitors: 'Projetos e deployments da Vercel, com custo.',

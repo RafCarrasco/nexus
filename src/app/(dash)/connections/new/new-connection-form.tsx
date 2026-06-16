@@ -33,7 +33,7 @@ const PLACEHOLDER: Record<string, string> = {
   cloudflare: '{\n  "token": "cf-api-token",\n  "accountId": "your-account-id (optional, needed for Workers)"\n}',
   azure:      '{\n  "tenantId": "...",\n  "clientId": "...",\n  "clientSecret": "...",\n  "subscriptionId": "optional"\n}',
   n8n:        '{\n  "baseUrl": "https://your-n8n-host",\n  "apiKey": "n8n_api_..."\n}',
-  supabase:   '{\n  "token": "sbp_...",\n  "orgSlug": "your-org-slug"\n}',
+  supabase:   '{\n  "token": "sbp_...",\n  "projectRefs": "ref1, ref2 (opcional — em branco = todos)",\n  "orgSlug": "your-org-slug (opcional)"\n}',
   docker:     '{}',
   fake:       '{\n  "resourceCount": 3\n}',
 };
