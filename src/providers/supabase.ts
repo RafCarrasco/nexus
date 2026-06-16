@@ -63,21 +63,27 @@ export const SupabaseProvider: Provider = {
   },
 
   async getHealth(conn, externalId): Promise<HealthDTO> {
-    // The Management API requires a `services` query param — without it the endpoint
-    // returns 400 (which we used to misreport as a critical outage). We poll the core
-    // always-present services and read each one's `healthy` flag.
-    const services = 'db,auth,rest,storage,realtime';
-    const res = await fetchWithTimeout(`${API}/v1/projects/${externalId}/health?services=${services}`, {
+    // The Management API requires a `services` query param, serialized as REPEATED
+    // params (services=db&services=auth&…) — comma-separated returns 400. We poll the
+    // core always-present services and read each one's `healthy` flag. On any non-2xx
+    // we surface the response body in the message so the real cause is visible
+    // (e.g. a paused project) instead of a bare "http 400".
+    const params = new URLSearchParams();
+    for (const s of ['db', 'auth', 'rest', 'storage', 'realtime']) params.append('services', s);
+    const res = await fetchWithTimeout(`${API}/v1/projects/${externalId}/health?${params.toString()}`, {
       headers: authHeaders(conn),
     });
-    if (!res.ok) return { status: 'down', message: `http ${res.status}` };
+    if (!res.ok) {
+      const detail = (await res.text().catch(() => '')).replace(/\s+/g, ' ').trim().slice(0, 200);
+      return { status: 'down', message: `http ${res.status}${detail ? ` — ${detail}` : ''}` };
+    }
     const body = (await res.json()) as Array<{ name?: string; healthy?: boolean; status?: string }>;
     if (!Array.isArray(body)) return { status: 'ok' };
     const bad = body.filter((s) => s.healthy === false);
     if (bad.length === 0) return { status: 'ok' };
     // Database down = hard down (crit); any other service degraded = warn.
     const dbDown = bad.some((s) => s.name === 'db');
-    const names = bad.map((s) => s.name ?? '?').join(', ');
+    const names = bad.map((s) => `${s.name ?? '?'}=${s.status ?? 'unhealthy'}`).join(', ');
     return { status: dbDown ? 'down' : 'degraded', message: `serviços com problema: ${names}` };
   },
 
