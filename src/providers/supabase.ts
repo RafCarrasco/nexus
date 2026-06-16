@@ -63,9 +63,22 @@ export const SupabaseProvider: Provider = {
   },
 
   async getHealth(conn, externalId): Promise<HealthDTO> {
-    const res = await fetchWithTimeout(`${API}/v1/projects/${externalId}/health`, { headers: authHeaders(conn) });
+    // The Management API requires a `services` query param — without it the endpoint
+    // returns 400 (which we used to misreport as a critical outage). We poll the core
+    // always-present services and read each one's `healthy` flag.
+    const services = 'db,auth,rest,storage,realtime';
+    const res = await fetchWithTimeout(`${API}/v1/projects/${externalId}/health?services=${services}`, {
+      headers: authHeaders(conn),
+    });
     if (!res.ok) return { status: 'down', message: `http ${res.status}` };
-    return { status: 'ok' };
+    const body = (await res.json()) as Array<{ name?: string; healthy?: boolean; status?: string }>;
+    if (!Array.isArray(body)) return { status: 'ok' };
+    const bad = body.filter((s) => s.healthy === false);
+    if (bad.length === 0) return { status: 'ok' };
+    // Database down = hard down (crit); any other service degraded = warn.
+    const dbDown = bad.some((s) => s.name === 'db');
+    const names = bad.map((s) => s.name ?? '?').join(', ');
+    return { status: dbDown ? 'down' : 'degraded', message: `serviços com problema: ${names}` };
   },
 
   async listTenants(): Promise<TenantDTO[]> {
