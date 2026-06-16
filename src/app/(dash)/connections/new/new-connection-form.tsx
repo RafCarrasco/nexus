@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
+import { ConnectionGuide } from './connection-guides';
 
 type Workspace = { id: string; name: string };
 
@@ -236,9 +237,10 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
           </>
         )}
 
-        {/* Non-firebase: raw JSON textarea */}
+        {/* Non-firebase: per-provider guide + raw JSON textarea */}
         {type !== 'firebase' && (
-          <div className="space-y-2">
+          <div className="space-y-3">
+            <ConnectionGuide type={type} />
             <Label>Configuração (JSON)</Label>
             <textarea
               className="w-full min-h-[200px] rounded-md border border-zinc-200 dark:border-zinc-800 px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500"
