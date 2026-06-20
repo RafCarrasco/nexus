@@ -15,6 +15,7 @@ model Workspace {
   updatedAt    DateTime      @updatedAt
   connections  Connection[]
   uptimeChecks UptimeCheck[]
+  aiProbes     AiProbe[]
 }
 
 model Connection {
@@ -122,6 +123,7 @@ model Incident {
   id            String       @id @default(cuid())
   resourceId    String?
   uptimeCheckId String?
+  aiProbeId     String?
   type          String
   severity      String
   message       String
@@ -130,6 +132,7 @@ model Incident {
   payload       Json?
   resource      Resource?    @relation(fields: [resourceId], references: [id], onDelete: Cascade)
   uptimeCheck   UptimeCheck? @relation(fields: [uptimeCheckId], references: [id], onDelete: Cascade)
+  aiProbe       AiProbe?     @relation(fields: [aiProbeId], references: [id], onDelete: Cascade)
 
   @@index([resolvedAt, openedAt])
 }
@@ -149,6 +152,32 @@ model UptimeCheck {
   lastCheckedAt    DateTime?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
+  workspace        Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  incidents        Incident[]
+}
+
+model AiProbe {
+  id               String   @id @default(cuid())
+  name             String
+  url              String
+  method           String   @default("POST")
+  headers          Json? // { "Authorization": "Bearer ...", "Content-Type": "application/json" }
+  bodyTemplate     String // JSON string with $PROMPT placeholder, e.g. {"messages":[{"role":"user","content":"$PROMPT"}]}
+  prompt           String // the known input sent as $PROMPT
+  responsePath     String? // optional dot-path to extract the answer from JSON response (e.g. "reply" or "choices.0.message.content"); empty = whole body text
+  validationMode   String   @default("rule") // 'rule' | 'llm_judge'
+  validationRule   String? // for rule mode: 'non_empty' | 'contains:<substr>'
+  intervalSec      Int      @default(300)
+  failThreshold    Int      @default(2)
+  workspaceId      String?
+  enabled          Boolean  @default(true)
+  consecutiveFails Int      @default(0)
+  lastStatus       String? // 'up' | 'down'
+  lastError        String?
+  lastResult       Json? // { ok, output, judgement? }
+  lastCheckedAt    DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
   workspace        Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
   incidents        Incident[]
 }

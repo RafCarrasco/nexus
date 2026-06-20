@@ -1,4 +1,4 @@
-import type { Resource, UptimeCheck } from '@prisma/client';
+import type { AiProbe, Resource, UptimeCheck } from '@prisma/client';
 import type { IncidentContext } from './types';
 
 /**
@@ -24,6 +24,17 @@ export function buildUptimeContext(check: UptimeCheck, phase: 'open' | 'resolve'
     kind: check.method,
     workspaceId: check.workspaceId,
     url: check.url,
+    phase,
+  };
+}
+
+export function buildAiProbeContext(probe: AiProbe, phase: 'open' | 'resolve'): IncidentContext {
+  return {
+    source: 'ai_probe',
+    label: probe.name,
+    kind: 'ai_probe',
+    workspaceId: probe.workspaceId,
+    url: probe.url,
     phase,
   };
 }

@@ -16,6 +16,7 @@ export type EntityType =
   | 'connection'
   | 'workspace'
   | 'uptime'
+  | 'ai_probe'
   | 'channel'
   | 'client'
   | 'resource'
@@ -45,6 +46,8 @@ const ACTION_LABELS: Record<string, string> = {
   'workspace.delete': 'App removido',
   'uptime.create': 'Check de uptime criado',
   'uptime.delete': 'Check de uptime removido',
+  'ai_probe.create': 'Probe de IA criado',
+  'ai_probe.delete': 'Probe de IA removido',
   'channel.create': 'Canal de notificação criado',
   'channel.delete': 'Canal de notificação removido',
   'channel.toggle': 'Canal de notificação alternado',
@@ -69,6 +72,7 @@ const ENTITY_LABELS: Record<EntityType, string> = {
   connection: 'Conexão',
   workspace: 'App',
   uptime: 'Uptime',
+  ai_probe: 'Probe IA',
   channel: 'Canal',
   client: 'Cliente',
   resource: 'Recurso',
@@ -95,6 +99,8 @@ function entityTypeOf(action: string): EntityType {
       return 'workspace';
     case 'uptime':
       return 'uptime';
+    case 'ai_probe':
+      return 'ai_probe';
     case 'channel':
       return 'channel';
     case 'client':
@@ -159,6 +165,11 @@ export async function enrichAuditEntries(rows: Row[]): Promise<Map<string, Enric
         .findMany({ where: { id: { in: [...ids.uptime] } }, select: { id: true, name: true } })
         .then((r) => void (names.uptime = toMap(r)))
         .catch((e) => log.warn('audit resolve uptime failed', { err: (e as Error).message })),
+    ids.ai_probe &&
+      prisma.aiProbe
+        .findMany({ where: { id: { in: [...ids.ai_probe] } }, select: { id: true, name: true } })
+        .then((r) => void (names.ai_probe = toMap(r)))
+        .catch((e) => log.warn('audit resolve ai_probe failed', { err: (e as Error).message })),
     ids.channel &&
       prisma.notificationChannel
         .findMany({ where: { id: { in: [...ids.channel] } }, select: { id: true, name: true } })

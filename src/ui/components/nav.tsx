@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, LayoutGrid, AlertTriangle, TrendingUp, History, Activity, Bell, Sparkles } from 'lucide-react';
+import { Home, LayoutGrid, AlertTriangle, TrendingUp, History, Activity, Bell, Sparkles, ScanSearch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const mainItems = [
@@ -10,6 +10,7 @@ const mainItems = [
   { href: '/cost',       label: 'Custo',       Icon: TrendingUp },
   { href: '/incidents',  label: 'Incidentes',  Icon: AlertTriangle },
   { href: '/uptime',     label: 'Uptime',      Icon: Activity },
+  { href: '/probes',     label: 'Probes IA',   Icon: ScanSearch },
 ] as const;
 
 const settingsItems = [

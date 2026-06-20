@@ -86,6 +86,7 @@ export async function testChannel(formData: FormData) {
     id: `test-${id}`,
     resourceId: null,
     uptimeCheckId: null,
+    aiProbeId: null,
     type: 'test',
     severity: 'info',
     message: 'Mensagem de teste do Nexus — se você recebeu isto, o canal está funcionando.',

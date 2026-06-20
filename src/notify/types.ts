@@ -7,7 +7,7 @@ import type { Incident } from '@prisma/client';
  * context instead of a Resource.
  */
 export interface IncidentContext {
-  source: 'resource' | 'uptime';
+  source: 'resource' | 'uptime' | 'ai_probe';
   label: string; // human-readable name of the thing that broke
   kind?: string; // resource kind / metric / etc. (optional detail)
   workspaceId?: string | null;
