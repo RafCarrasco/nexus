@@ -61,6 +61,8 @@ const ACTION_LABELS: Record<string, string> = {
   'savedFilter.delete': 'Filtro removido',
   'collector.run': 'Coleta executada',
   'ai.config': 'IA configurada',
+  'ingest_token.create': 'Token de ingest criado',
+  'ingest_token.delete': 'Token de ingest removido',
 };
 
 const ENTITY_LABELS: Record<EntityType, string> = {
@@ -86,6 +88,8 @@ function entityTypeOf(action: string): EntityType {
   const prefix = action.split('.')[0];
   switch (prefix) {
     case 'connection':
+    // ingest_token.* targets a connectionId, so resolve to the connection's name.
+    case 'ingest_token':
       return 'connection';
     case 'workspace':
       return 'workspace';

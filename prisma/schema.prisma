@@ -30,7 +30,21 @@ model Connection {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
   resources       Resource[]
+  ingestTokens    IngestToken[]
   workspace       Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+}
+
+model IngestToken {
+  id           String     @id @default(cuid())
+  connectionId String
+  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  tokenHash    String     @unique
+  name         String     @default("default")
+  lastUsedAt   DateTime?
+  createdAt    DateTime   @default(now())
+  expiresAt    DateTime?
+
+  @@index([connectionId])
 }
 
 model Resource {
@@ -50,8 +64,25 @@ model Resource {
   costSnapshots CostSnapshot[]
   activityLog   ActivityLog?
   incidents     Incident[]
+  metrics       Metric[]
 
   @@unique([connectionId, externalId])
+}
+
+model Metric {
+  id         String   @id @default(cuid())
+  resourceId String
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  name       String
+  value      Decimal  @db.Decimal(18, 6)
+  unit       String   @default("")
+  timestamp  DateTime
+  metadata   Json?
+  ingestedAt DateTime @default(now())
+
+  @@unique([resourceId, name, timestamp])
+  @@index([resourceId, timestamp])
+  @@index([name, timestamp])
 }
 
 model Tenant {

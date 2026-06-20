@@ -14,6 +14,7 @@ import { StatusPill } from '@/ui/components/status-pill';
 import { Input } from '@/ui/components/input';
 import { aggregateStatus } from '@/lib/status';
 import { updateWorkspace } from './actions';
+import { IngestTokens } from './ingest-tokens';
 
 export const dynamic = 'force-dynamic';
 
@@ -182,6 +183,7 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
               <ConnectionCard
                 key={c.id}
                 connection={c}
+                footer={<IngestTokens connectionId={c.id} />}
                 trigger={
                   <DeleteConfirmDialog
                     trigger={

@@ -28,9 +28,11 @@ type Props = {
     resources: Resource[];
   };
   trigger?: ReactNode;
+  /** Rendered at the bottom of the expanded card body (e.g. ingest-token manager). */
+  footer?: ReactNode;
 };
 
-export function ConnectionCard({ connection, trigger }: Props) {
+export function ConnectionCard({ connection, trigger, footer }: Props) {
   const groups = new Map<string, Resource[]>();
   for (const r of connection.resources) {
     const arr = groups.get(r.kind) ?? [];
@@ -171,6 +173,7 @@ export function ConnectionCard({ connection, trigger }: Props) {
             </ul>
           </div>
         ))}
+        {footer}
       </div>
     </details>
   );
