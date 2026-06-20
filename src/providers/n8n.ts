@@ -221,6 +221,74 @@ async function getRecentTokenInfo(
   }
 }
 
+/** True if `iso` falls on the same UTC calendar day as `date` (midnight-UTC bucket). */
+function sameUtcDay(iso: string | undefined, date: Date): boolean {
+  if (!iso) return false;
+  const t = new Date(iso);
+  if (Number.isNaN(t.getTime())) return false;
+  return (
+    t.getUTCFullYear() === date.getUTCFullYear() &&
+    t.getUTCMonth() === date.getUTCMonth() &&
+    t.getUTCDate() === date.getUTCDate()
+  );
+}
+
+/**
+ * Sum the AI token cost (USD) of a workflow's executions that ran on `date`.
+ *
+ * LIMITATION (today-window only): the n8n API has no "executions on date X" query, so we
+ * fetch the most recent `limit` successful runs and keep only those whose startedAt lands
+ * on `date`'s UTC calendar day. In practice this means the collector (which runs daily for
+ * `yesterdayUtc`) captures cost while those runs are still inside the recent window. For an
+ * arbitrary older `date` whose runs have already scrolled past the window, no executions
+ * match and we return 0 — we never fabricate historical token data. Apps that need exact
+ * historical AI cost should PUSH it via POST /api/ingest with source 'ai-tokens-*'.
+ *
+ * Each execution is priced independently (tokens × per-model rate) so mixed-model days sum
+ * correctly. Returns 0 when no matching run carried token usage.
+ */
+async function getDailyTokenCostUsd(
+  conn: ConnectionView,
+  workflowId: string,
+  date: Date,
+  limit = 50,
+): Promise<number> {
+  let listRes;
+  try {
+    listRes = await fetchWithTimeout(
+      `${baseUrl(conn)}/api/v1/executions?workflowId=${workflowId}&limit=${limit}&status=success`,
+      { headers: headers(conn) },
+    );
+  } catch {
+    return 0;
+  }
+  if (!listRes.ok) return 0;
+  const body = (await listRes.json()) as { data?: N8nExecution[] } | N8nExecution[];
+  const execs: N8nExecution[] = Array.isArray(body) ? body : (body.data ?? []);
+  const todays = execs.filter((e) => sameUtcDay(e.startedAt, date));
+  if (todays.length === 0) return 0;
+
+  // Fetch full payloads concurrently; price each run by its own tokens × model.
+  const costs = await Promise.all(
+    todays.map(async (e) => {
+      try {
+        const res = await fetchWithTimeout(
+          `${baseUrl(conn)}/api/v1/executions/${e.id}?includeData=true`,
+          { headers: headers(conn) },
+        );
+        if (!res.ok) return 0;
+        const full = await res.json();
+        const tokens = sumTokenUsage(full);
+        if (tokens <= 0) return 0;
+        return estimateTokenCostUsd(tokens, findModelName(full));
+      } catch {
+        return 0;
+      }
+    }),
+  );
+  return costs.reduce((s, c) => s + c, 0);
+}
+
 export const N8nProvider: Provider = {
   type: 'n8n',
 
@@ -258,10 +326,17 @@ export const N8nProvider: Provider = {
     );
   },
 
-  // Token usage is surfaced in metadata; mapping tokens→money needs a per-model price
-  // table (tracked in QUEUE.md / Frente C-D), so cost stays null for now.
-  async getDailyCost(_conn, _externalId, _date): Promise<CostDTO | null> {
-    return null;
+  // AI/LLM cost for the monitored app: n8n is self-hosted (no infra bill from the n8n
+  // API), so getDailyCost surfaces the *token* spend of this workflow's runs as a
+  // CostSnapshot with source 'ai-tokens-n8n'. The dashboard separates infra vs IA by the
+  // 'ai-tokens' source prefix. runCost upserts by (resourceId, date, source), so this
+  // coexists with any other source. Returns null when there's no token usage for `date`.
+  // See getDailyTokenCostUsd for the today-window granularity limitation.
+  async getDailyCost(conn, externalId, date): Promise<CostDTO | null> {
+    const workflowId = externalId.replace(/^workflow:/, '');
+    const amount = await getDailyTokenCostUsd(conn, workflowId, date);
+    if (amount <= 0) return null;
+    return { amount, currency: 'USD', source: 'ai-tokens-n8n' };
   },
 
   async getLastActivity(conn, externalId): Promise<Date | null> {

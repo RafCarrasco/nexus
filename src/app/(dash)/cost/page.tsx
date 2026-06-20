@@ -29,7 +29,14 @@ export default async function CostPage() {
     },
   });
 
-  type Point = { workspaceId: string; workspaceName: string; date: string; amount: number; currency: string };
+  type Point = {
+    workspaceId: string;
+    workspaceName: string;
+    date: string;
+    amount: number;
+    currency: string;
+    source: string;
+  };
   const points: Point[] = [];
   for (const w of workspaces) {
     for (const c of w.connections) {
@@ -41,6 +48,7 @@ export default async function CostPage() {
             date: s.date.toISOString().slice(0, 10),
             amount: Number(s.amount),
             currency: s.currency,
+            source: s.source,
           });
         }
       }

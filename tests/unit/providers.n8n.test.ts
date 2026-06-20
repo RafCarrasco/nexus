@@ -256,3 +256,56 @@ describe('N8nProvider agent stats', () => {
     expect(h.status).toBe('ok');
   });
 });
+
+// ── AI token cost → CostSnapshot (source 'ai-tokens-n8n') ──────────────────────
+
+describe('N8nProvider getDailyCost (ai-tokens-n8n)', () => {
+  beforeEach(() => fetchMock.mockReset());
+
+  const today = new Date('2026-06-15T00:00:00.000Z');
+  const runToday = '2026-06-15T10:00:00.000Z';
+  const runYesterday = '2026-06-14T10:00:00.000Z';
+
+  it('returns an ai-tokens-n8n CostDTO summed over that day\'s executions', async () => {
+    fetchMock.mockImplementation(
+      routeFetch([
+        // success list (status=success) — two runs today, one the day before (ignored)
+        ['status=success', { data: [
+          { id: 'e1', status: 'success', startedAt: runToday },
+          { id: 'e2', status: 'success', startedAt: runToday },
+          { id: 'e3', status: 'success', startedAt: runYesterday },
+        ] }],
+        // both today's exec payloads: 1M tokens on gpt-4o ($5) each → $10 total
+        ['/executions/e1?includeData=true', { data: { runData: { n: [{ json: { tokenUsage: { totalTokens: 1_000_000 }, model: 'gpt-4o' } }] } } }],
+        ['/executions/e2?includeData=true', { data: { runData: { n: [{ json: { tokenUsage: { totalTokens: 1_000_000 }, model: 'gpt-4o' } }] } } }],
+      ]),
+    );
+
+    const cost = await N8nProvider.getDailyCost(conn, 'workflow:42', today);
+    expect(cost).not.toBeNull();
+    expect(cost!.source).toBe('ai-tokens-n8n');
+    expect(cost!.currency).toBe('USD');
+    expect(cost!.amount).toBeCloseTo(10);
+  });
+
+  it('returns null when no execution ran on the given day', async () => {
+    fetchMock.mockImplementation(
+      routeFetch([
+        ['status=success', { data: [{ id: 'e3', status: 'success', startedAt: runYesterday }] }],
+      ]),
+    );
+    const cost = await N8nProvider.getDailyCost(conn, 'workflow:42', today);
+    expect(cost).toBeNull();
+  });
+
+  it('returns null when the day\'s runs carry no token usage', async () => {
+    fetchMock.mockImplementation(
+      routeFetch([
+        ['status=success', { data: [{ id: 'e1', status: 'success', startedAt: runToday }] }],
+        ['/executions/e1?includeData=true', { data: { runData: { n: [{ json: { note: 'no tokens here' } }] } } }],
+      ]),
+    );
+    const cost = await N8nProvider.getDailyCost(conn, 'workflow:42', today);
+    expect(cost).toBeNull();
+  });
+});

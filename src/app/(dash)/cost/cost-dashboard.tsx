@@ -16,10 +16,25 @@ import { formatMoney } from '@/lib/money';
 import { avatarColor } from '@/lib/avatar';
 import { useTheme } from '@/ui/components/theme-provider';
 
-type Point = { workspaceId: string; workspaceName: string; date: string; amount: number; currency: string };
+type Point = {
+  workspaceId: string;
+  workspaceName: string;
+  date: string;
+  amount: number;
+  currency: string;
+  source: string;
+};
 type Workspace = { id: string; name: string };
 type Range = 30 | 90 | 180 | 365 | 0;
 type Mode = 'stacked' | 'separated' | 'total';
+
+/**
+ * AI/LLM cost is any CostSnapshot whose source starts with 'ai-tokens' (e.g.
+ * 'ai-tokens-n8n', or 'ai-tokens-*' pushed via POST /api/ingest). Everything else is infra.
+ */
+function isAiSource(source: string): boolean {
+  return source.startsWith('ai-tokens');
+}
 
 const RANGE_LABELS: Record<number, string> = {
   30: '30 dias',
@@ -108,6 +123,19 @@ export function CostDashboard({
     }
     return best;
   }, [filtered]);
+
+  // Infra vs IA split for the selected period — IA = sources prefixed 'ai-tokens'.
+  const { infraTotal, aiTotal } = useMemo(() => {
+    let infra = 0;
+    let ai = 0;
+    for (const p of filtered) {
+      if (isAiSource(p.source)) ai += p.amount;
+      else infra += p.amount;
+    }
+    return { infraTotal: infra, aiTotal: ai };
+  }, [filtered]);
+  const splitDenom = infraTotal + aiTotal || 1;
+  const aiPct = (aiTotal / splitDenom) * 100;
 
   const hasData = points.length > 0;
 
@@ -248,6 +276,50 @@ export function CostDashboard({
         </div>
       </div>
 
+      {/* Infra vs IA split */}
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-semibold tracking-tight">Infra vs IA</h3>
+          <span className="text-xs text-zinc-400 dark:text-zinc-500">tokens marcados como IA</span>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+              <span className="h-2 w-2 rounded-full bg-zinc-400 dark:bg-zinc-500" />
+              Infra
+            </div>
+            <div className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+              {formatMoney(infraTotal, currency)}
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+              <span className="h-2 w-2 rounded-full bg-violet-500" />
+              IA
+            </div>
+            <div className="mt-1 text-2xl font-semibold tracking-tight text-violet-600 dark:text-violet-400">
+              {formatMoney(aiTotal, currency)}
+            </div>
+          </div>
+        </div>
+        {/* Stacked split bar: zinc = infra, violet = IA */}
+        <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+          <div
+            className="bg-zinc-400 dark:bg-zinc-500"
+            style={{ width: `${100 - aiPct}%` }}
+            title={`Infra ${formatMoney(infraTotal, currency)}`}
+          />
+          <div
+            className="bg-violet-500"
+            style={{ width: `${aiPct}%` }}
+            title={`IA ${formatMoney(aiTotal, currency)}`}
+          />
+        </div>
+        <div className="text-xs text-zinc-400 dark:text-zinc-500">
+          IA representa {aiPct.toFixed(aiPct > 0 && aiPct < 1 ? 1 : 0)}% do gasto no período.
+        </div>
+      </div>
+
       {/* KPI strip */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Kpi label="Total gasto" value={formatMoney(totalSpent, currency)} />
@@ -273,6 +345,9 @@ export function CostDashboard({
           {workspaces.map((w) => {
             const wPoints = filtered.filter((p) => p.workspaceId === w.id);
             const wTotal = wPoints.reduce((s, p) => s + p.amount, 0);
+            const wAiTotal = wPoints
+              .filter((p) => isAiSource(p.source))
+              .reduce((s, p) => s + p.amount, 0);
             const days = [...new Set(wPoints.map((p) => p.date))].sort();
             const half = Math.floor(days.length / 2);
             const cutDate = days[half] ?? '';
@@ -296,10 +371,19 @@ export function CostDashboard({
                 <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
                 <Link
                   href={`/workspaces/${w.id}` as never}
-                  className="flex-1 min-w-0 text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate hover:text-violet-600 dark:hover:text-violet-400"
+                  className="min-w-0 text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate hover:text-violet-600 dark:hover:text-violet-400"
                 >
                   {w.name}
                 </Link>
+                {wAiTotal > 0 && (
+                  <span
+                    className="inline-flex shrink-0 items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700 dark:bg-violet-500/15 dark:text-violet-300"
+                    title={`Custo de IA (tokens): ${formatMoney(wAiTotal, currency)}`}
+                  >
+                    IA {formatMoney(wAiTotal, currency)}
+                  </span>
+                )}
+                <div className="flex-1" />
                 <MiniSpark values={sparkData} color={color} />
                 <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 w-24 text-right">
                   {formatMoney(wTotal, currency)}
