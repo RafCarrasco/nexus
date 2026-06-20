@@ -476,14 +476,36 @@ export const FirebaseProvider: Provider = {
       return probePublicUrl(url);
     }
 
-    // Project resource: probe Auth
+    // Project resource: probe Auth first (hard failure → down, as before).
     try {
       const app = appFor(conn);
       await getAuth(app).listUsers(1);
-      return { status: 'ok' };
     } catch (e) {
       return { status: 'down', message: (e as Error).message };
     }
+
+    // Auth is healthy. Add a lightweight Firestore reachability probe to catch a
+    // Firestore/backend outage that Auth alone wouldn't surface. Conservative — only a
+    // real outage (network/timeout/5xx) downgrades to 'degraded'. An EXPECTED 4xx
+    // (401/403 permission, 404 API-not-enabled for projects that don't use Firestore)
+    // must NOT change the status. Wrapped so a probe failure can never abort getHealth.
+    try {
+      const token = await googleAccessToken(conn);
+      const pid = projectId(conn);
+      const res = await fetchWithTimeout(
+        `https://firestore.googleapis.com/v1/projects/${pid}/databases`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (res.status >= 500) {
+        return { status: 'degraded', message: 'Firestore inacessível' };
+      }
+      // 2xx and any 4xx (permission / API-not-enabled) leave status 'ok'.
+    } catch {
+      // Network error / timeout reaching Firestore.
+      return { status: 'degraded', message: 'Firestore inacessível' };
+    }
+
+    return { status: 'ok' };
   },
 
   async listTenants(conn, externalId): Promise<TenantDTO[]> {

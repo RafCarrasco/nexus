@@ -292,7 +292,11 @@ export const N8nProvider: Provider = {
     // Health from the recent error rate — drives the collector's auto-incident on
     // agent-run failure spikes (a workflow that starts erroring opens an incident).
     const stats = await getExecutionStats(conn, wfId, 20);
-    if (!stats || stats.window === 0) return { status: 'ok' };
+    // Workflow fetched OK but the executions endpoint is unreachable (n8n API/instance
+    // partially down): don't mask it as 'ok'. An empty window (stats present, no runs yet)
+    // is genuinely healthy.
+    if (!stats) return { status: 'degraded', message: 'não foi possível obter execuções' };
+    if (stats.window === 0) return { status: 'ok' };
     if (stats.errorRate === 0) return { status: 'ok' };
     const pct = Math.round(stats.errorRate * 100);
     const detail = `erro ${pct}% (${stats.error}/${stats.success + stats.error})`;

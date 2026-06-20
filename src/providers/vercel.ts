@@ -52,13 +52,40 @@ export const VercelProvider: Provider = {
     return first ? new Date(first.created) : null;
   },
 
-  async getHealth(_conn, _externalId, resource?: ResourceDTO): Promise<HealthDTO> {
-    // Called by collector with resource metadata available via a workaround:
-    // provider receives externalId; we can't get productionUrl from it alone.
-    // Collector must pass the resource; use metadata if injected. Fallback: unknown.
-    const url = (resource as unknown as { metadata?: { productionUrl?: unknown } } | undefined)?.metadata?.productionUrl;
-    if (typeof url !== 'string' || !url) return { status: 'unknown', message: 'no productionUrl' };
-    return probePublicUrl(`https://${url}`);
+  async getHealth(conn, externalId, resource?: ResourceDTO): Promise<HealthDTO> {
+    // Fetch the production domain fresh from the Vercel API so a missing/stale
+    // metadata.productionUrl can't mask a down deployment. Fall back to any injected
+    // resource metadata only if the API doesn't surface a domain.
+    const teamId = conn.config.teamId as string | undefined;
+    const projUrl = teamId
+      ? `${API}/v9/projects/${externalId}?teamId=${teamId}`
+      : `${API}/v9/projects/${externalId}`;
+
+    let prodUrl: string | undefined;
+    try {
+      const res = await fetchWithTimeout(projUrl, { headers: authHeaders(conn) });
+      if (!res.ok) {
+        // The projects API call itself failed. 401/403 = token revoked/insufficient (real
+        // outage of our access); anything else is treated as a transient degrade, not down,
+        // to avoid false positives from rate-limits / 5xx blips.
+        if (res.status === 401 || res.status === 403) return { status: 'down', message: 'token sem acesso' };
+        return { status: 'degraded', message: `http ${res.status}` };
+      }
+      const proj = (await res.json()) as VercelProject;
+      prodUrl = proj.targets?.production?.alias?.[0] ?? undefined;
+    } catch (e) {
+      return { status: 'down', message: (e as Error).message };
+    }
+
+    // Fallback to metadata productionUrl injected by the collector if the API gave nothing.
+    if (!prodUrl) {
+      const injected = (resource as unknown as { metadata?: { productionUrl?: unknown } } | undefined)
+        ?.metadata?.productionUrl;
+      if (typeof injected === 'string' && injected) prodUrl = injected;
+    }
+
+    if (!prodUrl) return { status: 'unknown', message: 'sem deploy de produção' };
+    return probePublicUrl(`https://${prodUrl}`);
   },
 
   async listTenants(): Promise<TenantDTO[]> {

@@ -231,4 +231,28 @@ describe('N8nProvider agent stats', () => {
     const h = await N8nProvider.getHealth(conn, 'workflow:42');
     expect(h.status).toBe('down'); // 2/3 ≈ 67% >= 50%
   });
+
+  it('getHealth is degraded (not ok) when the executions endpoint is unreachable', async () => {
+    // Workflow fetch OK + active, but the executions call fails → instance partially down.
+    fetchMock.mockImplementation(
+      routeFetch([
+        ['/workflows/42', { id: '42', active: true }],
+        ['limit=20', '404'],
+      ]),
+    );
+    const h = await N8nProvider.getHealth(conn, 'workflow:42');
+    expect(h.status).toBe('degraded');
+    expect(h.message).toContain('execuções');
+  });
+
+  it('getHealth stays ok when active with zero recent executions', async () => {
+    fetchMock.mockImplementation(
+      routeFetch([
+        ['/workflows/42', { id: '42', active: true }],
+        ['limit=20', { data: [] }],
+      ]),
+    );
+    const h = await N8nProvider.getHealth(conn, 'workflow:42');
+    expect(h.status).toBe('ok');
+  });
 });

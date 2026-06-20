@@ -394,6 +394,57 @@ describe('FirebaseProvider deep inventory', () => {
     expect(listUsersMock).not.toHaveBeenCalled();
   });
 
+  it('project health: ok when Auth passes and Firestore is reachable (2xx)', async () => {
+    listUsersMock.mockResolvedValue({ users: [] });
+    fetchMock.mockImplementation(routeFetch([['firestore.googleapis.com', { databases: [] }]]));
+    const h = await FirebaseProvider.getHealth(conn, 'project:demo-proj');
+    expect(h.status).toBe('ok');
+  });
+
+  it('project health: ok when Firestore returns an expected 4xx (permission / API off)', async () => {
+    // 403/404 on Firestore is EXPECTED for projects that don't use it — must NOT flip status.
+    listUsersMock.mockResolvedValue({ users: [] });
+    fetchMock.mockImplementation((url: string) =>
+      url.includes('firestore.googleapis.com')
+        ? Promise.resolve({ ok: false, status: 403 })
+        : Promise.resolve({ ok: true, json: async () => ({}) }),
+    );
+    const h = await FirebaseProvider.getHealth(conn, 'project:demo-proj');
+    expect(h.status).toBe('ok');
+  });
+
+  it('project health: degraded when Firestore returns 5xx', async () => {
+    listUsersMock.mockResolvedValue({ users: [] });
+    fetchMock.mockImplementation((url: string) =>
+      url.includes('firestore.googleapis.com')
+        ? Promise.resolve({ ok: false, status: 503 })
+        : Promise.resolve({ ok: true, json: async () => ({}) }),
+    );
+    const h = await FirebaseProvider.getHealth(conn, 'project:demo-proj');
+    expect(h.status).toBe('degraded');
+    expect(h.message).toContain('Firestore');
+  });
+
+  it('project health: degraded when the Firestore probe throws (network/timeout)', async () => {
+    listUsersMock.mockResolvedValue({ users: [] });
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('firestore.googleapis.com')) throw new Error('timeout');
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+    const h = await FirebaseProvider.getHealth(conn, 'project:demo-proj');
+    expect(h.status).toBe('degraded');
+  });
+
+  it('project health: down when Auth itself fails (Firestore never reached)', async () => {
+    listUsersMock.mockRejectedValue(new Error('auth boom'));
+    fetchMock.mockImplementation(() => {
+      throw new Error('SSRF: Firestore must not be probed when Auth is down');
+    });
+    const h = await FirebaseProvider.getHealth(conn, 'project:demo-proj');
+    expect(h.status).toBe('down');
+    expect(h.message).toContain('auth boom');
+  });
+
   it('blocks SSRF: an internal hosting defaultUrl is not probed', async () => {
     const siteName = 'projects/demo-proj/sites/evil';
     fetchMock.mockImplementation((url: string) => {

@@ -60,9 +60,19 @@ export const GitHubProvider: Provider = {
     return repo.pushed_at ? new Date(repo.pushed_at) : null;
   },
 
-  // Repo health = "exists"; no real probe needed.
-  async getHealth(): Promise<HealthDTO> {
-    return { status: 'ok' };
+  // Real probe: GET /repos/{externalId} (same call getLastActivity uses). A deleted repo
+  // (404) or revoked/insufficient token (401/403) is a real outage; transient non-2xx
+  // degrades; network/timeout is down.
+  async getHealth(conn, externalId): Promise<HealthDTO> {
+    try {
+      const res = await fetchWithTimeout(`${API}/repos/${externalId}`, { headers: authHeaders(conn) });
+      if (res.ok) return { status: 'ok' };
+      if (res.status === 404) return { status: 'down', message: 'repo não encontrado' };
+      if (res.status === 401 || res.status === 403) return { status: 'down', message: 'token sem acesso' };
+      return { status: 'degraded', message: `http ${res.status}` };
+    } catch (e) {
+      return { status: 'down', message: (e as Error).message };
+    }
   },
 
   async listTenants(): Promise<TenantDTO[]> {
