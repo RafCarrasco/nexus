@@ -2,13 +2,15 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { isDevAllowedEmail, checkDevPassword } from '@/auth/utils';
 
 beforeEach(() => {
-  process.env.NEXUS_ALLOWED_EMAIL_DOMAIN = 'procurementgarage.com';
+  // isAllowedEmail defaults to the two PG domains; clear any override so each test starts clean.
+  delete process.env.NEXUS_ALLOWED_EMAIL_DOMAINS;
   process.env.NEXUS_DEV_EMAILS = 'rafael.carrasco@procurementgarage.com, other@procurementgarage.com';
   delete process.env.NEXUS_DEV_PASSWORD;
 });
 
 afterEach(() => {
   delete process.env.NEXUS_DEV_PASSWORD;
+  delete process.env.NEXUS_ALLOWED_EMAIL_DOMAINS;
 });
 
 describe('isDevAllowedEmail', () => {
@@ -19,7 +21,7 @@ describe('isDevAllowedEmail', () => {
     expect(isDevAllowedEmail('intruder@procurementgarage.com')).toBe(false);
   });
   it('rejects when domain does not match', () => {
-    process.env.NEXUS_ALLOWED_EMAIL_DOMAIN = 'somewhereelse.com';
+    process.env.NEXUS_ALLOWED_EMAIL_DOMAINS = 'somewhereelse.com';
     expect(isDevAllowedEmail('rafael.carrasco@procurementgarage.com')).toBe(false);
   });
   it('is case-insensitive on both list and input', () => {
