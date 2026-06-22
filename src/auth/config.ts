@@ -14,6 +14,12 @@ const providers: Provider[] = [
     clientId: process.env.AUTH_MICROSOFT_ENTRA_ID_ID!,
     clientSecret: process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET!,
     issuer: process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER,
+    // Link the Microsoft sign-in to a pre-existing user with the same email
+    // (e.g. one created earlier via the dev login) instead of erroring with
+    // OAuthAccountNotLinked. Safe here: the only OAuth provider is PG's own
+    // single-tenant Entra (trusted, verified corporate emails) and signIn is
+    // already domain-restricted to PG via isAllowedEmail.
+    allowDangerousEmailAccountLinking: true,
   }),
 ];
 
