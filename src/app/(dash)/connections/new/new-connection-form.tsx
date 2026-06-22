@@ -4,9 +4,28 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
-import { ConnectionGuide } from './connection-guides';
+import { ConnectionGuide, CONNECTION_GUIDES } from './connection-guides';
 
 type Workspace = { id: string; name: string };
+
+/** Turn a config key (e.g. "projectRefs") into a friendly label ("Project Refs"). */
+function friendlyLabel(key: string): string {
+  const spaced = key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .trim();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+/** Numeric-looking fields: send as number when the value parses to a finite number, else string. */
+const NUMERIC_FIELDS = new Set(['resourceCount', 'dailyCost']);
+function coerce(key: string, value: string): string | number {
+  if (NUMERIC_FIELDS.has(key)) {
+    const n = Number(value);
+    if (value.trim() !== '' && Number.isFinite(n)) return n;
+  }
+  return value;
+}
 
 interface Props {
   workspaces?: Workspace[];
@@ -42,8 +61,10 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
   const router = useRouter();
   const [name, setName] = useState('');
   const [type, setType] = useState(forcedType ?? 'firebase');
-  // non-firebase: raw JSON textarea
-  const [config, setConfig] = useState('{}');
+  // non-firebase: one labeled input per guide field, keyed by field.key
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
+  // non-firebase power-user escape hatch: raw JSON that overrides assembled fields
+  const [advancedJson, setAdvancedJson] = useState('');
   // firebase-specific
   const [serviceAccount, setServiceAccount] = useState<SAJson | null>(null);
   const [billingInput, setBillingInput] = useState('');
@@ -92,7 +113,38 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
           ...(billingInput.trim() ? { billingAccountId: billingInput.trim() } : {}),
         };
       } else {
-        finalConfig = JSON.parse(config);
+        const fields = CONNECTION_GUIDES[type]?.fields ?? [];
+
+        // Required fields must be non-empty.
+        const missing = fields.filter((f) => f.required && !fieldValues[f.key]?.trim());
+        if (missing.length > 0) {
+          setError(
+            `Preencha os campos obrigatórios: ${missing.map((f) => friendlyLabel(f.key)).join(', ')}.`,
+          );
+          setBusy(false);
+          return;
+        }
+
+        // Assemble config from non-empty field values (omit empty optional fields).
+        const assembled: Record<string, unknown> = {};
+        for (const f of fields) {
+          const raw = fieldValues[f.key];
+          if (raw == null || raw.trim() === '') continue;
+          assembled[f.key] = coerce(f.key, raw.trim());
+        }
+
+        // Advanced JSON (when present) overrides the assembled config entirely.
+        if (advancedJson.trim() !== '') {
+          try {
+            finalConfig = JSON.parse(advancedJson);
+          } catch {
+            setError('JSON avançado inválido — corrija ou limpe o campo para usar os campos acima.');
+            setBusy(false);
+            return;
+          }
+        } else {
+          finalConfig = assembled;
+        }
       }
 
       const res = await fetch('/api/connections', {
@@ -148,7 +200,7 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
             <select
               className="w-full rounded-md border border-zinc-200 dark:border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500 bg-white dark:bg-zinc-900"
               value={type}
-              onChange={(e) => { setType(e.target.value); setServiceAccount(null); setProjectIdPreview(''); setEmailPreview(''); }}
+              onChange={(e) => { setType(e.target.value); setServiceAccount(null); setProjectIdPreview(''); setEmailPreview(''); setFieldValues({}); setAdvancedJson(''); setError(null); }}
             >
               <option value="firebase">firebase</option>
               <option value="supabase">supabase</option>
@@ -237,17 +289,46 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
           </>
         )}
 
-        {/* Non-firebase: per-provider guide + raw JSON textarea */}
+        {/* Non-firebase: per-provider guide (tutorial) + one labeled input per field */}
         {type !== 'firebase' && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <ConnectionGuide type={type} />
-            <Label>Configuração (JSON)</Label>
-            <textarea
-              className="w-full min-h-[200px] rounded-md border border-zinc-200 dark:border-zinc-800 px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500"
-              value={config}
-              onChange={(e) => setConfig(e.target.value)}
-              placeholder={PLACEHOLDER[type] ?? '{\n  "url": "...",\n  "token": "..."\n}'}
-            />
+
+            {(CONNECTION_GUIDES[type]?.fields ?? []).map((f) => (
+              <div key={f.key} className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  {friendlyLabel(f.key)}
+                  <span className={f.required ? 'text-xs font-normal text-rose-600 dark:text-rose-300' : 'text-xs font-normal text-zinc-500 dark:text-zinc-400'}>
+                    {f.required ? 'obrigatório' : 'opcional'}
+                  </span>
+                </Label>
+                <Input
+                  value={fieldValues[f.key] ?? ''}
+                  onChange={(e) => setFieldValues((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                  placeholder={f.hint}
+                  className="border-zinc-200 dark:border-zinc-800 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 focus:ring-offset-0 font-mono"
+                />
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">{f.hint}</p>
+              </div>
+            ))}
+
+            {/* Power-user escape hatch: raw JSON overrides the fields above when filled. */}
+            <details className="rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 px-3 py-2">
+              <summary className="cursor-pointer text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Avançado: editar JSON
+              </summary>
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Para configs fora do padrão. Quando preenchido, este JSON substitui os campos acima.
+                </p>
+                <textarea
+                  className="w-full min-h-[160px] rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-violet-100 focus:border-violet-500"
+                  value={advancedJson}
+                  onChange={(e) => setAdvancedJson(e.target.value)}
+                  placeholder={PLACEHOLDER[type] ?? '{\n  "url": "...",\n  "token": "..."\n}'}
+                />
+              </div>
+            </details>
           </div>
         )}
 
