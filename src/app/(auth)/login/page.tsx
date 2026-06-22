@@ -1,6 +1,7 @@
 import { AuthError } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth/config';
+import { allowedDomains } from '@/auth/utils';
 import { Button } from '@/ui/components/button';
 import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
@@ -35,7 +36,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const { error } = await searchParams;
   const devLoginEnabled = process.env.NEXUS_DEV_LOGIN === '1';
   const requireDevPassword = !!process.env.NEXUS_DEV_PASSWORD;
-  const domain = process.env.NEXUS_ALLOWED_EMAIL_DOMAIN ?? 'empresa.com';
+  const domains = allowedDomains();
+  const domain = domains[0];
+  const domainsText = domains.join(' ou ');
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4">
       <div className="w-full max-w-md">
@@ -71,7 +74,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             >
               {error && (
                 <p className="rounded-lg border border-rose-200/60 bg-rose-50/60 p-3 text-xs text-rose-700">
-                  Email ou senha inválidos. Use seu email corporativo (@{domain}) autorizado.
+                  Email ou senha inválidos. Use seu email PG (@{domainsText.replace(/ ou /g, ' ou @')}) autorizado.
                 </p>
               )}
               <div className="space-y-1">
@@ -120,6 +123,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                 <MicrosoftLogo />
                 Continuar com Microsoft
               </Button>
+              <p className="mt-3 text-center text-xs text-zinc-400 dark:text-zinc-500">
+                Acesso restrito à PG · {domainsText}
+              </p>
             </form>
           )}
         </div>

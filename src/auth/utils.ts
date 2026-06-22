@@ -2,11 +2,27 @@
  * Pure utility — no NextAuth runtime import.
  * Exported from config.ts too for convenience.
  */
+
+/** Procurement Garage corporate domains — the only ones allowed to sign in. */
+const PG_DOMAINS = ['procurementgarage.com', 'pgconsulting-group.com'];
+
+/**
+ * The allowed email domains. Defaults to the two PG domains so the app is
+ * PG-only out of the box (fail-closed to PG, not "nobody"). Override with the
+ * comma-separated `NEXUS_ALLOWED_EMAIL_DOMAINS` env var if ever needed.
+ */
+export function allowedDomains(): string[] {
+  const override = (process.env.NEXUS_ALLOWED_EMAIL_DOMAINS ?? '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase().replace(/^@/, ''))
+    .filter(Boolean);
+  return override.length ? override : PG_DOMAINS;
+}
+
 export function isAllowedEmail(email: string | null | undefined): boolean {
   if (!email) return false;
-  const domain = (process.env.NEXUS_ALLOWED_EMAIL_DOMAIN ?? '').toLowerCase();
-  if (!domain) return false;
-  return email.toLowerCase().endsWith(`@${domain}`);
+  const e = email.toLowerCase().trim();
+  return allowedDomains().some((d) => e.endsWith(`@${d}`));
 }
 
 /**
