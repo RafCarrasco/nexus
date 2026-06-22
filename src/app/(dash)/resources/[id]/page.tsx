@@ -6,6 +6,7 @@ import { Badge } from '@/ui/components/badge';
 import { Button } from '@/ui/components/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import { formatMoney } from '@/lib/money';
+import { formatDeployTimestamp, relativeDeployHint } from '@/lib/dates';
 import { DeleteConfirmDialog } from '@/ui/components/delete-confirm-dialog';
 import {
   ServiceInventoryPanel,
@@ -39,7 +40,11 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
     recentModel?: string;
     recentTokenCostUsd?: number;
     flowInsights?: FlowInsights | null;
+    lastDeployAt?: unknown;
   };
+
+  const lastDeploy = formatDeployTimestamp(meta.lastDeployAt);
+  const lastDeployRel = relativeDeployHint(meta.lastDeployAt);
 
   return (
     <>
@@ -76,6 +81,17 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
           <CardHeader><CardTitle>Custo 30 dias</CardTitle></CardHeader>
           <CardContent className="text-2xl">{formatMoney(total30d, currency)}</CardContent>
         </Card>
+        {lastDeploy && (
+          <Card>
+            <CardHeader><CardTitle>Último deploy</CardTitle></CardHeader>
+            <CardContent className="text-2xl">
+              {lastDeploy}
+              {lastDeployRel && (
+                <span className="ml-2 text-sm text-zinc-500 dark:text-zinc-400">· {lastDeployRel}</span>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
       {r.kind === 'firebase-project' && meta.serviceInventory && (
         <ServiceInventoryPanel inventory={meta.serviceInventory} authConfig={meta.authConfig} />

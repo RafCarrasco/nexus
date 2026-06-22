@@ -41,6 +41,27 @@ describe('VercelProvider', () => {
     expect(r[1].metadata.productionUrl).toBeNull();
   });
 
+  it('listResources sets metadata.lastDeployAt from the production deployment time', async () => {
+    // 1st fetch: projects list; per-project fetch: /v6/deployments → newest production deploy
+    const created = Date.UTC(2026, 4, 20, 13, 45, 0); // 2026-05-20 13:45 UTC
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ projects: [{ id: 'p1', name: 'my-app' }] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ deployments: [{ created }] }) });
+    const r = await VercelProvider.listResources(conn);
+    expect(r[0].metadata.lastDeployAt).toBe(new Date(created).toISOString());
+    // the deployments call is scoped to the project and the production target
+    expect(fetchMock.mock.calls[1][0]).toContain('projectId=p1');
+    expect(fetchMock.mock.calls[1][0]).toContain('target=production');
+  });
+
+  it('listResources omits lastDeployAt when the deployments call fails', async () => {
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ projects: [{ id: 'p1', name: 'my-app' }] }) })
+      .mockResolvedValueOnce({ ok: false, status: 403 });
+    const r = await VercelProvider.listResources(conn);
+    expect(r[0].metadata).not.toHaveProperty('lastDeployAt');
+  });
+
   it('listResources appends teamId to URL when provided', async () => {
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ projects: [] }) });
     await VercelProvider.listResources(connWithTeam);

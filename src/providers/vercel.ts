@@ -18,6 +18,31 @@ type VercelDeployment = {
   created: number;
 };
 
+/**
+ * Most recent production deployment time for a project (best-effort). The /v9/projects
+ * list doesn't carry a deploy timestamp, so we hit /v6/deployments scoped to the project
+ * and the production target, limit 1. Returns the ISO string of deployments[0].created
+ * (epoch ms), or undefined on any failure / no deployment — never throws, so a denied or
+ * slow call can't break listResources.
+ */
+async function getLastProductionDeployIso(
+  conn: ConnectionView,
+  projectId: string,
+  teamId: string | undefined,
+): Promise<string | undefined> {
+  try {
+    const q = new URLSearchParams({ projectId, limit: '1', target: 'production' });
+    if (teamId) q.set('teamId', teamId);
+    const res = await fetchWithTimeout(`${API}/v6/deployments?${q}`, { headers: authHeaders(conn) });
+    if (!res.ok) return undefined;
+    const data = (await res.json()) as { deployments?: VercelDeployment[] };
+    const created = data.deployments?.[0]?.created;
+    return typeof created === 'number' ? new Date(created).toISOString() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export const VercelProvider: Provider = {
   type: 'vercel',
 
@@ -27,15 +52,23 @@ export const VercelProvider: Provider = {
     const res = await fetchWithTimeout(url, { headers: authHeaders(conn) });
     if (!res.ok) throw new Error(`vercel listResources ${res.status}`);
     const data = (await res.json()) as { projects: VercelProject[] };
-    return data.projects.map((p) => ({
-      externalId: p.id,
-      name: p.name,
-      kind: 'vercel-project',
-      metadata: {
-        framework: p.framework ?? null,
-        productionUrl: p.targets?.production?.alias?.[0] ?? null,
-      },
-    }));
+    // Per-project last production deploy time — best-effort, concurrent. Omitted from
+    // metadata when unavailable (no null garbage).
+    return Promise.all(
+      data.projects.map(async (p) => {
+        const lastDeployAt = await getLastProductionDeployIso(conn, p.id, teamId);
+        return {
+          externalId: p.id,
+          name: p.name,
+          kind: 'vercel-project',
+          metadata: {
+            framework: p.framework ?? null,
+            productionUrl: p.targets?.production?.alias?.[0] ?? null,
+            ...(lastDeployAt ? { lastDeployAt } : {}),
+          },
+        };
+      }),
+    );
   },
 
   // Vercel doesn't expose daily cost via public API.

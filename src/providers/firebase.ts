@@ -71,6 +71,32 @@ async function listHostingSites(conn: ConnectionView): Promise<HostingSite[]> {
   }
 }
 
+/**
+ * Latest Hosting release time for a site (best-effort). siteName is the full Hosting
+ * site resource name (projects/<pid>/sites/<siteId>); the releases endpoint accepts it
+ * directly. Returns the RFC3339 releaseTime of the most recent release, or undefined if
+ * the call fails, there are no releases, or no releaseTime is present — never throws, so
+ * one denied/missing API can't break listResources.
+ */
+async function getLatestHostingReleaseTime(conn: ConnectionView, siteName: string): Promise<string | undefined> {
+  try {
+    const token = await googleAccessToken(conn, ['https://www.googleapis.com/auth/firebase']);
+    const res = await fetchWithTimeout(
+      `https://firebasehosting.googleapis.com/v1beta1/${siteName}/releases?pageSize=1`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!res.ok) {
+      log.warn('firebase getLatestHostingReleaseTime !ok', { status: res.status });
+      return undefined;
+    }
+    const json = (await res.json()) as { releases?: Array<{ releaseTime?: string }> };
+    return json.releases?.[0]?.releaseTime;
+  } catch (e) {
+    log.warn('firebase getLatestHostingReleaseTime failed', { err: (e as Error).message });
+    return undefined;
+  }
+}
+
 type CloudFunction = {
   name: string;
   state?: string;
@@ -275,16 +301,24 @@ export const FirebaseProvider: Provider = {
     };
 
     const sites = await listHostingSites(conn);
-    const hostingResources: ResourceDTO[] = sites.map((site) => ({
-      externalId: `hosting:${site.name}`,
-      name: site.name.split('/').pop() ?? site.name,
-      kind: 'firebase-hosting',
-      metadata: {
-        defaultUrl: site.defaultUrl,
-        appId: site.appId,
-        projectId: id,
-      },
-    }));
+    // Per-site latest release time — best-effort, concurrent. A failure/no-release omits
+    // lastDeployAt entirely (no null garbage in metadata).
+    const hostingResources: ResourceDTO[] = await Promise.all(
+      sites.map(async (site) => {
+        const lastDeployAt = await getLatestHostingReleaseTime(conn, site.name);
+        return {
+          externalId: `hosting:${site.name}`,
+          name: site.name.split('/').pop() ?? site.name,
+          kind: 'firebase-hosting',
+          metadata: {
+            defaultUrl: site.defaultUrl,
+            appId: site.appId,
+            projectId: id,
+            ...(lastDeployAt ? { lastDeployAt } : {}),
+          },
+        };
+      }),
+    );
 
     const functions = await listCloudFunctions(conn);
     const functionResources: ResourceDTO[] = functions.map((fn) => ({

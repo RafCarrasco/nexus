@@ -5,6 +5,7 @@ import { Badge } from '@/ui/components/badge';
 import { CostDisplay, providerSupportsCost } from '@/ui/components/cost-display';
 import { StatusPill } from '@/ui/components/status-pill';
 import { aggregateStatus } from '@/lib/status';
+import { formatDeployTimestamp, relativeDeployHint } from '@/lib/dates';
 
 type Resource = {
   id: string;
@@ -153,6 +154,22 @@ export function ConnectionCard({ connection, trigger, footer }: Props) {
                         );
                       }
                       return null;
+                    })()}
+                    {(() => {
+                      const meta = r.metadata;
+                      const raw =
+                        meta !== null && typeof meta === 'object' && !Array.isArray(meta)
+                          ? (meta as Record<string, unknown>)['lastDeployAt']
+                          : undefined;
+                      const ts = formatDeployTimestamp(raw);
+                      if (!ts) return null;
+                      const rel = relativeDeployHint(raw);
+                      return (
+                        <div className="text-xs text-zinc-400 dark:text-zinc-500">
+                          Último deploy: {ts}
+                          {rel ? <span className="text-zinc-300 dark:text-zinc-600"> · {rel}</span> : null}
+                        </div>
+                      );
                     })()}
                   </div>
                   <div className="flex items-center gap-3 shrink-0">

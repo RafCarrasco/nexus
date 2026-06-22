@@ -82,6 +82,47 @@ describe('FirebaseProvider', () => {
     );
   });
 
+  it('sets hosting metadata.lastDeployAt from the latest release time', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/releases')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ releases: [{ releaseTime: '2026-05-20T13:45:00Z' }] }),
+        });
+      }
+      if (url.includes('firebasehosting.googleapis.com')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            sites: [{ name: 'projects/demo-proj/sites/demo-proj', defaultUrl: 'https://demo-proj.web.app' }],
+          }),
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+    const r = await FirebaseProvider.listResources(conn);
+    const hosting = r.find((x) => x.kind === 'firebase-hosting')!;
+    expect(hosting.metadata.lastDeployAt).toBe('2026-05-20T13:45:00Z');
+  });
+
+  it('omits hosting lastDeployAt when the releases call fails or is empty', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/releases')) return Promise.resolve({ ok: false, status: 403 });
+      if (url.includes('firebasehosting.googleapis.com')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            sites: [{ name: 'projects/demo-proj/sites/demo-proj', defaultUrl: 'https://demo-proj.web.app' }],
+          }),
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+    const r = await FirebaseProvider.listResources(conn);
+    const hosting = r.find((x) => x.kind === 'firebase-hosting')!;
+    expect(hosting.metadata).not.toHaveProperty('lastDeployAt');
+  });
+
   it('handles hosting API failure gracefully', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 403 });
     const r = await FirebaseProvider.listResources(conn);
