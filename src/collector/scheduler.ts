@@ -4,6 +4,7 @@ import { runCost } from './runCost';
 import { runUptime } from './runUptime';
 import { runAiProbes } from './runAiProbes';
 import { runMetricEval } from './runMetricEval';
+import { runRetention } from './runRetention';
 import { log } from '@/lib/logger';
 
 let started = false;
@@ -35,6 +36,11 @@ export function startScheduler(): void {
   // Metric threshold evaluation every 5 minutes (acts on metrics pushed via the ingest API).
   cron.schedule('*/5 * * * *', () => {
     runMetricEval().catch((e) => log.error('runMetricEval failed', { err: (e as Error).message }));
+  });
+
+  // Data retention: prune unbounded time-series tables daily at 02:00 UTC.
+  cron.schedule('0 2 * * *', () => {
+    runRetention().catch((e) => log.error('runRetention failed', { err: (e as Error).message }));
   });
 
   log.info('scheduler started');
