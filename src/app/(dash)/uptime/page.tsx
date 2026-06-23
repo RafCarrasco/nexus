@@ -85,6 +85,7 @@ export default async function UptimePage() {
                 <TableHead>Status</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>URL</TableHead>
+                <TableHead>Latência</TableHead>
                 <TableHead>Intervalo</TableHead>
                 <TableHead>Falhas</TableHead>
                 <TableHead>Último check</TableHead>
@@ -98,6 +99,9 @@ export default async function UptimePage() {
                   <TableCell className="text-sm font-medium">{c.name}</TableCell>
                   <TableCell className="max-w-[260px] truncate font-mono text-xs text-zinc-500 dark:text-zinc-400" title={c.url}>
                     {c.method} {c.url}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400">
+                    {c.lastLatencyMs != null ? `${c.lastLatencyMs}ms` : '—'}
                   </TableCell>
                   <TableCell className="text-xs text-zinc-500 dark:text-zinc-400">{c.intervalSec}s</TableCell>
                   <TableCell className="text-xs text-zinc-500 dark:text-zinc-400">

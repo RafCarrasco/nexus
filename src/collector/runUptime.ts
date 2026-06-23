@@ -1,6 +1,7 @@
 import { prisma } from '@/db/client';
 import { probeUptimeUrl } from '@/lib/http';
 import { evaluateUptime } from '@/lib/uptime';
+import { evaluateLatencyDegradation } from '@/lib/latency-trend';
 import { log } from '@/lib/logger';
 import { listNotifiers } from '@/notify/registry';
 import { buildUptimeContext } from '@/notify/context';
@@ -30,8 +31,14 @@ export async function runUptime(now: Date = new Date()): Promise<void> {
           consecutiveFails: t.consecutiveFails,
           lastStatus: t.lastStatus,
           lastError: probe.ok ? null : (probe.error ?? `http ${probe.status ?? '?'}`),
+          lastLatencyMs: probe.latencyMs ?? null,
           lastCheckedAt: now,
         },
+      });
+
+      // Time-series sample for latency-trend detection + the uptime sparkline.
+      await prisma.uptimeSample.create({
+        data: { uptimeCheckId: c.id, ok: probe.ok, status: probe.status ?? null, latencyMs: probe.latencyMs ?? null, at: now },
       });
 
       // evaluateUptime only signals openIncident on the down *transition*. A check stuck
@@ -89,8 +96,66 @@ export async function runUptime(now: Date = new Date()): Promise<void> {
           log.warn('uptime resolve notify failed', { check: c.name, err: (e as Error).message });
         }
       }
+
+      // Latency degradation is only meaningful while the check is up — a down check is
+      // already covered by the uptime_down incident. Compare recent p95 vs 7-day baseline.
+      if (probe.ok) await evaluatePerfDegradation(c, now);
     } catch (e) {
       log.error('uptime check failed', { check: c.name, err: (e as Error).message });
+    }
+  }
+}
+
+/**
+ * Open/resolve a `performance_degraded` (warn) incident for an uptime check based on its
+ * recent latency trend. Idempotent: at most one open perf incident per check at a time.
+ */
+async function evaluatePerfDegradation(c: import('@prisma/client').UptimeCheck, now: Date): Promise<void> {
+  const since7d = new Date(now.getTime() - 7 * 86_400_000);
+  const since1h = new Date(now.getTime() - 3_600_000);
+  const samples = await prisma.uptimeSample.findMany({
+    where: { uptimeCheckId: c.id, ok: true, latencyMs: { not: null }, at: { gte: since7d } },
+    select: { latencyMs: true, at: true },
+  });
+  const recent: number[] = [];
+  const baseline: number[] = [];
+  for (const s of samples) {
+    if (s.latencyMs == null) continue;
+    if (s.at >= since1h) recent.push(s.latencyMs);
+    else baseline.push(s.latencyMs);
+  }
+  const res = evaluateLatencyDegradation(recent, baseline);
+
+  const open = await prisma.incident.findFirst({
+    where: { uptimeCheckId: c.id, type: 'performance_degraded', resolvedAt: null },
+  });
+
+  if (res.degraded && res.p95Recent != null && res.baseline != null && !open) {
+    const inc = await prisma.incident.create({
+      data: {
+        uptimeCheckId: c.id,
+        type: 'performance_degraded',
+        severity: 'warn',
+        message: `${c.name} lento: p95 ${Math.round(res.p95Recent)}ms vs baseline ${Math.round(res.baseline)}ms (${(res.p95Recent / res.baseline).toFixed(1)}×)`,
+        payload: { p95Recent: res.p95Recent, baseline: res.baseline },
+      },
+    });
+    log.warn('uptime degraded', { check: c.name, p95: res.p95Recent, baseline: res.baseline });
+    try {
+      const ctx = buildUptimeContext(c, 'open');
+      for (const n of listNotifiers()) await n.notify(inc, ctx);
+    } catch (e) {
+      log.warn('perf open notify failed', { check: c.name, err: (e as Error).message });
+    }
+  } else if (!res.degraded && open) {
+    await prisma.incident.update({ where: { id: open.id }, data: { resolvedAt: now } });
+    log.info('uptime latency recovered', { check: c.name });
+    try {
+      const ctx = buildUptimeContext(c, 'resolve');
+      const resolved = await prisma.incident.findUniqueOrThrow({ where: { id: open.id } });
+      for (const n of listNotifiers()) await n.notify(resolved, ctx);
+    } catch (e) {
+      log.warn('perf resolve notify failed', { check: c.name, err: (e as Error).message });
     }
   }
 }

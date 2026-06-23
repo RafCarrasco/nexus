@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, LayoutGrid, AlertTriangle, TrendingUp, History, Activity, Bell, Sparkles, ScanSearch } from 'lucide-react';
+import { Home, LayoutGrid, AlertTriangle, TrendingUp, History, Activity, Bell, Sparkles, ScanSearch, Gauge } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const mainItems = [
@@ -14,9 +14,10 @@ const mainItems = [
 ] as const;
 
 const settingsItems = [
-  { href: '/settings/channels', label: 'Notificações',  Icon: Bell },
-  { href: '/settings/ai',       label: 'IA',            Icon: Sparkles },
-  { href: '/settings/audit',    label: 'Auditoria',     Icon: History },
+  { href: '/settings/thresholds', label: 'Limites',       Icon: Gauge },
+  { href: '/settings/channels',   label: 'Notificações',  Icon: Bell },
+  { href: '/settings/ai',         label: 'IA',            Icon: Sparkles },
+  { href: '/settings/audit',      label: 'Auditoria',     Icon: History },
 ] as const;
 
 type NavItemProps = { href: string; label: string; Icon: React.ElementType; active: boolean };

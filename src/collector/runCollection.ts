@@ -2,6 +2,7 @@ import { prisma } from '@/db/client';
 import type { Prisma } from '@prisma/client';
 import { getProvider } from '@/providers/registry';
 import { decrypt } from '@/crypto/vault';
+import { withRetry } from '@/lib/http';
 import { tryConnectionLock, releaseConnectionLock } from './lock';
 import { log } from '@/lib/logger';
 import { listNotifiers } from '@/notify/registry';
@@ -39,7 +40,9 @@ export async function runCollection(connectionId: string): Promise<void> {
 
     let resources;
     try {
-      resources = await provider.listResources(view);
+      resources = await withRetry(() => provider.listResources(view), {
+        onRetry: (n, e) => log.info('listResources retry', { connectionId, attempt: n, err: (e as Error).message }),
+      });
     } catch (e) {
       await markError(connectionId, (e as Error).message, null);
       return;
@@ -62,7 +65,7 @@ export async function runCollection(connectionId: string): Promise<void> {
 
         // activity
         try {
-          const lastSeen = await provider.getLastActivity(view, r.externalId);
+          const lastSeen = await withRetry(() => provider.getLastActivity(view, r.externalId));
           await prisma.activityLog.upsert({
             where: { resourceId: dbRes.id },
             create: { resourceId: dbRes.id, lastSeenAt: lastSeen, source: provider.type },
@@ -74,7 +77,7 @@ export async function runCollection(connectionId: string): Promise<void> {
 
         // health
         try {
-          const h = await provider.getHealth(view, r.externalId);
+          const h = await withRetry(() => provider.getHealth(view, r.externalId));
           if (h.status === 'down' || h.status === 'degraded') {
             await openIncidentOnce(dbRes.id, 'health_bad', h.status === 'down' ? 'crit' : 'warn', h.message ?? h.status);
           } else {

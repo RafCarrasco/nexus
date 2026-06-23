@@ -66,8 +66,32 @@ model Resource {
   activityLog   ActivityLog?
   incidents     Incident[]
   metrics       Metric[]
+  thresholds    MetricThreshold[]
 
   @@unique([connectionId, externalId])
+}
+
+// User-defined numeric threshold on an ingested Metric. The runMetricEval collector
+// evaluates each enabled rule against the latest Metric value within lookbackSec and
+// opens/resolves a `metric_threshold:<name>` incident. This activates the Metric model
+// (previously inert — ingest wrote metrics but nothing evaluated them) into a real
+// early-warning signal: cpu>85, queue_depth>1000, error_rate>0.05, free_mem<10, etc.
+model MetricThreshold {
+  id          String    @id @default(cuid())
+  resourceId  String
+  resource    Resource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  metricName  String
+  operator    String // 'gt' | 'gte' | 'lt' | 'lte' | 'eq'
+  threshold   Decimal   @db.Decimal(18, 6)
+  severity    String    @default("warn") // 'warn' | 'crit'
+  lookbackSec Int       @default(3600)
+  enabled     Boolean   @default(true)
+  lastValue   Decimal?  @db.Decimal(18, 6)
+  lastEvalAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([resourceId, metricName])
 }
 
 model Metric {
@@ -149,11 +173,29 @@ model UptimeCheck {
   consecutiveFails Int        @default(0)
   lastStatus       String?
   lastError        String?
+  lastLatencyMs    Int?
   lastCheckedAt    DateTime?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
   workspace        Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
   incidents        Incident[]
+  samples          UptimeSample[]
+}
+
+// Per-tick time-series for an uptime check: latency + outcome. Feeds the latency-trend
+// degradation detector (p95 of recent OK samples vs 7-day median baseline → opens a
+// `performance_degraded` warn incident before the service actually goes down) and the
+// latency sparkline on the uptime page. Pruned by the retention job.
+model UptimeSample {
+  id            String      @id @default(cuid())
+  uptimeCheckId String
+  uptimeCheck   UptimeCheck @relation(fields: [uptimeCheckId], references: [id], onDelete: Cascade)
+  ok            Boolean
+  status        Int?
+  latencyMs     Int?
+  at            DateTime    @default(now())
+
+  @@index([uptimeCheckId, at])
 }
 
 model AiProbe {
@@ -279,4 +321,17 @@ model AuditLog {
   user      User     @relation(fields: [userId], references: [id])
 
   @@index([createdAt])
+}
+
+// Single-row liveness record for the collector loop itself. runAll stamps lastRunAt on
+// every tick and lastSuccessAt when at least one connection collected without error.
+// /api/health surfaces the age so a dead/hung scheduler (process OOM, uncaught throw,
+// crashed cron) is detectable from outside — Nexus can monitor its own collector.
+model CollectorHeartbeat {
+  id              String    @id // 'singleton'
+  lastRunAt       DateTime?
+  lastSuccessAt   DateTime?
+  connectionCount Int       @default(0)
+  durationMs      Int?
+  updatedAt       DateTime  @updatedAt
 }

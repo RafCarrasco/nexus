@@ -74,6 +74,8 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
   const [workspaceId, setWorkspaceId] = useState<string>(fixedWorkspaceId ?? '');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -97,55 +99,84 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
     setEmailPreview(parsed.client_email);
   }
 
+  /**
+   * Assemble the provider config from the form (firebase upload, or guide fields with the
+   * advanced-JSON escape hatch). Returns the config or a human error message — shared by
+   * both Save and the Test button so they validate exactly the same payload.
+   */
+  function assembleConfig(): { config: Record<string, unknown> } | { error: string } {
+    if (type === 'firebase') {
+      if (!serviceAccount) return { error: 'Carregue o arquivo de serviço (.json) do Firebase primeiro.' };
+      return {
+        config: {
+          serviceAccount,
+          ...(billingInput.trim() ? { billingAccountId: billingInput.trim() } : {}),
+        },
+      };
+    }
+
+    const fields = CONNECTION_GUIDES[type]?.fields ?? [];
+    const missing = fields.filter((f) => f.required && !fieldValues[f.key]?.trim());
+    if (missing.length > 0) {
+      return { error: `Preencha os campos obrigatórios: ${missing.map((f) => friendlyLabel(f.key)).join(', ')}.` };
+    }
+
+    const assembled: Record<string, unknown> = {};
+    for (const f of fields) {
+      const raw = fieldValues[f.key];
+      if (raw == null || raw.trim() === '') continue;
+      assembled[f.key] = coerce(f.key, raw.trim());
+    }
+
+    if (advancedJson.trim() !== '') {
+      try {
+        return { config: JSON.parse(advancedJson) };
+      } catch {
+        return { error: 'JSON avançado inválido — corrija ou limpe o campo para usar os campos acima.' };
+      }
+    }
+    return { config: assembled };
+  }
+
+  async function testConnection() {
+    setTesting(true);
+    setError(null);
+    setTestResult(null);
+    try {
+      const built = assembleConfig();
+      if ('error' in built) {
+        setError(built.error);
+        return;
+      }
+      const res = await fetch('/api/connections/validate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ type, config: built.config }),
+      });
+      const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (data?.ok) {
+        setTestResult({ ok: true, msg: 'Conexão validada — credenciais OK.' });
+      } else {
+        setTestResult({ ok: false, msg: data?.error ?? 'Falha na validação.' });
+      }
+    } catch (e) {
+      setTestResult({ ok: false, msg: (e as Error).message });
+    } finally {
+      setTesting(false);
+    }
+  }
+
   async function submit() {
     setBusy(true);
     setError(null);
     try {
-      let finalConfig: Record<string, unknown>;
-      if (type === 'firebase') {
-        if (!serviceAccount) {
-          setError('Carregue o arquivo de serviço (.json) do Firebase primeiro.');
-          setBusy(false);
-          return;
-        }
-        finalConfig = {
-          serviceAccount,
-          ...(billingInput.trim() ? { billingAccountId: billingInput.trim() } : {}),
-        };
-      } else {
-        const fields = CONNECTION_GUIDES[type]?.fields ?? [];
-
-        // Required fields must be non-empty.
-        const missing = fields.filter((f) => f.required && !fieldValues[f.key]?.trim());
-        if (missing.length > 0) {
-          setError(
-            `Preencha os campos obrigatórios: ${missing.map((f) => friendlyLabel(f.key)).join(', ')}.`,
-          );
-          setBusy(false);
-          return;
-        }
-
-        // Assemble config from non-empty field values (omit empty optional fields).
-        const assembled: Record<string, unknown> = {};
-        for (const f of fields) {
-          const raw = fieldValues[f.key];
-          if (raw == null || raw.trim() === '') continue;
-          assembled[f.key] = coerce(f.key, raw.trim());
-        }
-
-        // Advanced JSON (when present) overrides the assembled config entirely.
-        if (advancedJson.trim() !== '') {
-          try {
-            finalConfig = JSON.parse(advancedJson);
-          } catch {
-            setError('JSON avançado inválido — corrija ou limpe o campo para usar os campos acima.');
-            setBusy(false);
-            return;
-          }
-        } else {
-          finalConfig = assembled;
-        }
+      const built = assembleConfig();
+      if ('error' in built) {
+        setError(built.error);
+        setBusy(false);
+        return;
       }
+      const finalConfig = built.config;
 
       const res = await fetch('/api/connections', {
         method: 'POST',
@@ -338,11 +369,27 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
           </p>
         )}
 
-        <div className="flex gap-3">
-          <Button type="submit" disabled={busy || !name}>
+        {testResult && (
+          <p
+            className={
+              testResult.ok
+                ? 'text-sm text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 rounded-lg p-3 whitespace-pre-wrap'
+                : 'text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-lg p-3 whitespace-pre-wrap'
+            }
+          >
+            {testResult.ok ? '✓ ' : '✕ '}
+            {testResult.msg}
+          </p>
+        )}
+
+        <div className="flex flex-wrap gap-3">
+          <Button type="submit" disabled={busy || testing || !name}>
             {busy ? 'Salvando…' : 'Salvar conexão'}
           </Button>
-          <Button type="button" variant="outline" onClick={() => router.back()} disabled={busy}>
+          <Button type="button" variant="outline" onClick={testConnection} disabled={busy || testing}>
+            {testing ? 'Testando…' : 'Testar conexão'}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => router.back()} disabled={busy || testing}>
             Cancelar
           </Button>
         </div>

@@ -11,6 +11,44 @@ export async function fetchWithTimeout(url: string, init: RequestInit = {}, ms =
 }
 
 /**
+ * True when an error looks transient (worth retrying): timeouts, network blips, and
+ * 429/5xx upstream responses. Permanent failures (401/403/404 — bad creds, missing repo)
+ * are NOT transient and must not be retried, so a wrong credential surfaces immediately
+ * instead of after a backoff storm.
+ */
+export function isTransientError(e: unknown): boolean {
+  const m = ((e as Error)?.message ?? String(e)).toLowerCase();
+  if (/\b(400|401|403|404|405|409|422)\b/.test(m)) return false;
+  if (/\b(408|425|429|500|502|503|504)\b/.test(m)) return true;
+  return /timeout|timed out|abort|network|fetch failed|econn|etimedout|eai_again|enotfound|socket hang up|reset/.test(m);
+}
+
+/**
+ * Run `fn`, retrying transient failures with exponential backoff (1s, 2s, 4s by default).
+ * Permanent errors throw immediately. Gives a flaky upstream a few seconds to recover so
+ * a brief glitch never cascades into a false "connection down" incident.
+ */
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  opts: { retries?: number; baseMs?: number; onRetry?: (attempt: number, err: unknown) => void } = {},
+): Promise<T> {
+  const retries = opts.retries ?? 3;
+  const baseMs = opts.baseMs ?? 1000;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      if (attempt === retries || !isTransientError(e)) break;
+      opts.onRetry?.(attempt + 1, e);
+      await new Promise((r) => setTimeout(r, baseMs * 2 ** attempt));
+    }
+  }
+  throw lastErr;
+}
+
+/**
  * True when `raw` is a public http(s) URL safe to probe. Rejects non-http(s) schemes and
  * loopback / link-local / private / metadata hosts. Custom public domains are allowed.
  */
@@ -68,14 +106,16 @@ export async function probeUptimeUrl(
   rawUrl: string,
   method: 'GET' | 'HEAD' = 'GET',
   ms = 10000,
-): Promise<{ ok: boolean; status?: number; error?: string }> {
+): Promise<{ ok: boolean; status?: number; error?: string; latencyMs?: number }> {
   if (!isSafePublicHttpUrl(rawUrl)) return { ok: false, error: 'unsafe url' };
+  const started = Date.now();
   try {
     const res = await fetchWithTimeout(rawUrl, { method }, ms);
+    const latencyMs = Date.now() - started;
     return res.status < 400
-      ? { ok: true, status: res.status }
-      : { ok: false, status: res.status, error: `http ${res.status}` };
+      ? { ok: true, status: res.status, latencyMs }
+      : { ok: false, status: res.status, error: `http ${res.status}`, latencyMs };
   } catch (e) {
-    return { ok: false, error: (e as Error).message };
+    return { ok: false, error: (e as Error).message, latencyMs: Date.now() - started };
   }
 }

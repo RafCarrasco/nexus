@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { isSafePublicHttpUrl, probePublicUrl } from '@/lib/http';
+import { isSafePublicHttpUrl, probePublicUrl, isTransientError, withRetry } from '@/lib/http';
 
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
@@ -62,5 +62,57 @@ describe('probePublicUrl', () => {
   it('returns degraded when the probe throws', async () => {
     fetchMock.mockRejectedValueOnce(new Error('network'));
     expect(await probePublicUrl('https://example.com')).toMatchObject({ status: 'degraded' });
+  });
+});
+
+describe('isTransientError', () => {
+  it('treats timeouts, network errors and 429/5xx as transient', () => {
+    expect(isTransientError(new Error('request timeout'))).toBe(true);
+    expect(isTransientError(new Error('fetch failed'))).toBe(true);
+    expect(isTransientError(new Error('ECONNRESET'))).toBe(true);
+    expect(isTransientError(new Error('http 429'))).toBe(true);
+    expect(isTransientError(new Error('http 500'))).toBe(true);
+    expect(isTransientError(new Error('http 503'))).toBe(true);
+  });
+
+  it('treats auth/not-found/bad-request as permanent (no retry)', () => {
+    expect(isTransientError(new Error('http 400'))).toBe(false);
+    expect(isTransientError(new Error('http 401'))).toBe(false);
+    expect(isTransientError(new Error('http 403'))).toBe(false);
+    expect(isTransientError(new Error('http 404'))).toBe(false);
+    expect(isTransientError(new Error('unknown provider type: foo'))).toBe(false);
+  });
+});
+
+describe('withRetry', () => {
+  it('returns immediately on success without retrying', async () => {
+    const fn = vi.fn().mockResolvedValue('ok');
+    const onRetry = vi.fn();
+    expect(await withRetry(fn, { baseMs: 1, onRetry })).toBe('ok');
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(onRetry).not.toHaveBeenCalled();
+  });
+
+  it('retries transient failures then succeeds', async () => {
+    const fn = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('http 503'))
+      .mockResolvedValue('ok');
+    const onRetry = vi.fn();
+    expect(await withRetry(fn, { baseMs: 1, onRetry })).toBe('ok');
+    expect(fn).toHaveBeenCalledTimes(2);
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry permanent errors', async () => {
+    const fn = vi.fn().mockRejectedValue(new Error('http 404'));
+    await expect(withRetry(fn, { baseMs: 1 })).rejects.toThrow('404');
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives up after exhausting retries on persistent transient errors', async () => {
+    const fn = vi.fn().mockRejectedValue(new Error('timeout'));
+    await expect(withRetry(fn, { baseMs: 1, retries: 2 })).rejects.toThrow('timeout');
+    expect(fn).toHaveBeenCalledTimes(3); // initial + 2 retries
   });
 });

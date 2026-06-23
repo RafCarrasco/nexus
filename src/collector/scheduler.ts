@@ -3,6 +3,7 @@ import { runAll } from './runAll';
 import { runCost } from './runCost';
 import { runUptime } from './runUptime';
 import { runAiProbes } from './runAiProbes';
+import { runMetricEval } from './runMetricEval';
 import { log } from '@/lib/logger';
 
 let started = false;
@@ -29,6 +30,11 @@ export function startScheduler(): void {
   // AI quality probes every minute (each probe self-gates on its own interval).
   cron.schedule('* * * * *', () => {
     runAiProbes().catch((e) => log.error('runAiProbes failed', { err: (e as Error).message }));
+  });
+
+  // Metric threshold evaluation every 5 minutes (acts on metrics pushed via the ingest API).
+  cron.schedule('*/5 * * * *', () => {
+    runMetricEval().catch((e) => log.error('runMetricEval failed', { err: (e as Error).message }));
   });
 
   log.info('scheduler started');
