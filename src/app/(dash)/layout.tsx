@@ -6,6 +6,7 @@ import { auth, signOut } from '@/auth/config';
 import { ChatWidget } from '@/ui/components/chat-widget';
 import { CommandPalette } from '@/ui/components/command-palette';
 import { PaletteHint } from '@/ui/components/palette-hint';
+import { NotificationBell } from '@/ui/components/notification-bell';
 import { ThemeProvider } from '@/ui/components/theme-provider';
 import { ThemeToggle } from '@/ui/components/theme-toggle';
 import { ToastProvider } from '@/ui/components/toast';
@@ -80,6 +81,7 @@ export default async function DashLayout({ children }: { children: ReactNode }) 
                 <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" title="Sistema online" />
                 Online
               </span>
+              <NotificationBell />
               <PaletteHint />
             </div>
           </div>

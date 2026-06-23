@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { CheckCircle2 } from 'lucide-react';
 import { prisma } from '@/db/client';
 import { auth } from '@/auth/config';
@@ -35,19 +36,19 @@ export default async function IncidentsPage({
   const open = await prisma.incident.findMany({
     where: { resolvedAt: null, ...incidentFilter },
     orderBy: { openedAt: 'desc' },
-    include: { resource: { include: { connection: true } }, uptimeCheck: true },
+    include: { resource: { include: { connection: true } }, uptimeCheck: true, aiProbe: true },
   });
   const recent = await prisma.incident.findMany({
     where: { resolvedAt: { not: null }, ...incidentFilter },
     orderBy: { resolvedAt: 'desc' },
     take: 50,
-    include: { resource: true, uptimeCheck: true },
+    include: { resource: true, uptimeCheck: true, aiProbe: true },
   });
   const openRows: OpenRow[] = open.map((i) => ({
     id: i.id,
     openedAt: i.openedAt.toISOString().slice(0, 19).replace('T', ' '),
-    name: i.resource?.name ?? i.uptimeCheck?.name ?? '—',
-    href: i.resource ? `/resources/${i.resourceId}` : '/uptime',
+    name: i.resource?.name ?? i.uptimeCheck?.name ?? i.aiProbe?.name ?? '—',
+    href: `/incidents/${i.id}`,
     type: i.type,
     severity: i.severity,
     message: i.message,
@@ -121,9 +122,17 @@ export default async function IncidentsPage({
                   <TableCell className="text-zinc-500 dark:text-zinc-400 text-xs">
                     {i.resolvedAt!.toISOString().slice(0, 19).replace('T', ' ')}
                   </TableCell>
-                  <TableCell className="font-medium text-zinc-900 dark:text-zinc-100">{i.resource?.name ?? i.uptimeCheck?.name ?? '—'}</TableCell>
+                  <TableCell className="font-medium text-zinc-900 dark:text-zinc-100">
+                    <Link href={`/incidents/${i.id}` as never} className="transition-colors hover:text-violet-600 dark:hover:text-violet-400">
+                      {i.resource?.name ?? i.uptimeCheck?.name ?? i.aiProbe?.name ?? '—'}
+                    </Link>
+                  </TableCell>
                   <TableCell className="text-zinc-500 dark:text-zinc-400">{i.type}</TableCell>
-                  <TableCell className="max-w-[420px] truncate text-zinc-600 dark:text-zinc-400">{i.message}</TableCell>
+                  <TableCell className="max-w-[420px] truncate text-zinc-600 dark:text-zinc-400">
+                    <Link href={`/incidents/${i.id}` as never} className="block truncate transition-colors hover:text-violet-600 dark:hover:text-violet-400">
+                      {i.message}
+                    </Link>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
