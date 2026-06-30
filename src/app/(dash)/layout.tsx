@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Nav } from '@/ui/components/nav';
 import { Breadcrumb } from '@/ui/components/breadcrumb';
 import { auth, signOut } from '@/auth/config';
@@ -23,7 +24,12 @@ function NexusMark() {
 
 export default async function DashLayout({ children }: { children: ReactNode }) {
   const session = await auth();
-  const email = session?.user?.email ?? '';
+  // Server-side auth gate for ALL dashboard pages. This is the authoritative guard: the
+  // Edge middleware redirect is defense-in-depth, but it was observed NOT firing in prod
+  // (pages rendered to unauthenticated requests), so we enforce here in the Node runtime
+  // — the same auth() the API guards use, which correctly returns null when unauthenticated.
+  if (!session?.user) redirect('/login');
+  const email = session.user.email ?? '';
 
   return (
     <ThemeProvider>
