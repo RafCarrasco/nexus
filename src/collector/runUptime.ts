@@ -2,6 +2,7 @@ import { prisma } from '@/db/client';
 import { probeUptimeUrl } from '@/lib/http';
 import { evaluateUptime } from '@/lib/uptime';
 import { evaluateLatencyDegradation } from '@/lib/latency-trend';
+import { bumpIncident } from './incident-bump';
 import { log } from '@/lib/logger';
 import { listNotifiers } from '@/notify/registry';
 import { buildUptimeContext } from '@/notify/context';
@@ -51,6 +52,7 @@ export async function runUptime(now: Date = new Date()): Promise<void> {
           where: { uptimeCheckId: c.id, type: 'uptime_down', resolvedAt: null },
         });
         if (!existing) shouldOpen = true;
+        else await bumpIncident(existing.id, now);
       }
 
       if (shouldOpen) {
@@ -147,6 +149,8 @@ async function evaluatePerfDegradation(c: import('@prisma/client').UptimeCheck, 
     } catch (e) {
       log.warn('perf open notify failed', { check: c.name, err: (e as Error).message });
     }
+  } else if (res.degraded && open) {
+    await bumpIncident(open.id, now);
   } else if (!res.degraded && open) {
     await prisma.incident.update({ where: { id: open.id }, data: { resolvedAt: now } });
     log.info('uptime latency recovered', { check: c.name });

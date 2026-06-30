@@ -3,6 +3,7 @@ import { log } from '@/lib/logger';
 import { listNotifiers } from '@/notify/registry';
 import { buildResourceContext } from '@/notify/context';
 import { notifyResolvedIncidents } from '@/notify/resolve';
+import { bumpIncident } from './incident-bump';
 import { compareMetric, OP_LABEL, thresholdIncidentType, type MetricOperator } from '@/lib/metric-threshold';
 
 /**
@@ -74,6 +75,8 @@ export async function runMetricEval(now: Date = new Date()): Promise<void> {
           op: rule.operator,
           threshold,
         });
+      } else if (breached && open) {
+        await bumpIncident(open.id, now);
       } else if (!breached && open) {
         await prisma.incident.update({ where: { id: open.id }, data: { resolvedAt: now } });
         await notifyResolvedIncidents([open.id]);

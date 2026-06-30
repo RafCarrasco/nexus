@@ -3,6 +3,7 @@ import { daysBackUtc } from '@/lib/dates';
 import { log } from '@/lib/logger';
 import { listNotifiers } from '@/notify/registry';
 import { buildResourceContext } from '@/notify/context';
+import { bumpIncident } from './incident-bump';
 
 const SPIKE_MULTIPLIER = 1.5;
 const SPIKE_FLOOR_USD = 1;
@@ -30,7 +31,10 @@ export async function detectCostSpikes(forDate: Date): Promise<void> {
       const open = await prisma.incident.findFirst({
         where: { resourceId: r.id, type: 'cost_spike', resolvedAt: null },
       });
-      if (open) continue;
+      if (open) {
+        await bumpIncident(open.id);
+        continue;
+      }
 
       const inc = await prisma.incident.create({
         data: {

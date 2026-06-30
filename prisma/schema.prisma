@@ -153,6 +153,8 @@ model Incident {
   message       String
   openedAt      DateTime     @default(now())
   resolvedAt    DateTime?
+  eventCount    Int          @default(1)
+  lastEventAt   DateTime     @default(now())
   payload       Json?
   resource      Resource?    @relation(fields: [resourceId], references: [id], onDelete: Cascade)
   uptimeCheck   UptimeCheck? @relation(fields: [uptimeCheckId], references: [id], onDelete: Cascade)

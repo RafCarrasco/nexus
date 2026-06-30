@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { getProvider } from '@/providers/registry';
 import { decrypt } from '@/crypto/vault';
 import { withRetry } from '@/lib/http';
+import { bumpIncident } from './incident-bump';
 import { tryConnectionLock, releaseConnectionLock } from './lock';
 import { log } from '@/lib/logger';
 import { listNotifiers } from '@/notify/registry';
@@ -160,7 +161,10 @@ async function markError(connectionId: string, message: string, resourceId: stri
   const existing = await prisma.incident.findFirst({
     where: { resourceId: target, type: 'collection_failed', resolvedAt: null },
   });
-  if (existing) return;
+  if (existing) {
+    await bumpIncident(existing.id);
+    return;
+  }
 
   const incident = await prisma.incident.create({
     data: {
@@ -181,7 +185,10 @@ async function markError(connectionId: string, message: string, resourceId: stri
 
 async function openIncidentOnce(resourceId: string, type: string, severity: string, message: string) {
   const existing = await prisma.incident.findFirst({ where: { resourceId, type, resolvedAt: null } });
-  if (existing) return;
+  if (existing) {
+    await bumpIncident(existing.id);
+    return;
+  }
   const inc = await prisma.incident.create({ data: { resourceId, type, severity, message } });
   const resource = await prisma.resource.findUniqueOrThrow({ where: { id: resourceId } });
   const ctx = buildResourceContext(resource, 'open');

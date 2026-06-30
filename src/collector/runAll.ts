@@ -4,6 +4,7 @@ import { log } from '@/lib/logger';
 import { listNotifiers } from '@/notify/registry';
 import { buildResourceContext } from '@/notify/context';
 import { notifyResolvedIncidents } from '@/notify/resolve';
+import { bumpIncident } from './incident-bump';
 
 // A connection is considered stale when it hasn't collected in 4× the runAll cadence
 // (5 min → 20 min). Past that, the loop is alive but this connection's collection has
@@ -67,7 +68,10 @@ async function evaluateStaleConnections(now: Date): Promise<void> {
       const existing = await prisma.incident.findFirst({
         where: { resourceId: target, type: 'connection_stale', resolvedAt: null },
       });
-      if (existing) continue;
+      if (existing) {
+        await bumpIncident(existing.id, now);
+        continue;
+      }
       const ageMin = c.lastCollectedAt ? Math.round((now.getTime() - c.lastCollectedAt.getTime()) / 60_000) : null;
       const inc = await prisma.incident.create({
         data: {

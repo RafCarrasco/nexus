@@ -92,6 +92,8 @@ export async function testChannel(formData: FormData) {
     message: 'Mensagem de teste do Nexus — se você recebeu isto, o canal está funcionando.',
     openedAt: now,
     resolvedAt: null,
+    eventCount: 1,
+    lastEventAt: now,
     payload: null,
   };
   const ctx: IncidentContext = {

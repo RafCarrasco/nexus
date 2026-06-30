@@ -5,6 +5,7 @@ import { prisma } from '@/db/client';
 import { assertIngestToken } from '@/auth/ingest-guard';
 import { listNotifiers } from '@/notify/registry';
 import { buildResourceContext } from '@/notify/context';
+import { bumpIncident } from '@/collector/incident-bump';
 import { log } from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -144,7 +145,10 @@ async function ingestIncident(resource: Resource, payload: unknown): Promise<Nex
     where: { resourceId: resource.id, type: p.data.type, resolvedAt: null },
     select: { id: true },
   });
-  if (existing) return NextResponse.json({ id: existing.id, kind: 'incident', deduped: true }, { status: 200 });
+  if (existing) {
+    await bumpIncident(existing.id);
+    return NextResponse.json({ id: existing.id, kind: 'incident', deduped: true }, { status: 200 });
+  }
 
   const incident = await prisma.incident.create({
     data: {

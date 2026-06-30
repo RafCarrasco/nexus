@@ -5,6 +5,8 @@ import { auth } from '@/auth/config';
 import { PageHeader } from '@/ui/components/page-header';
 import { SavedFilters, type SavedFilterEntry } from '@/ui/components/saved-filters';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
+import { classifyIncidentSource } from '@/lib/incident-source';
+import { relativeDeployHint } from '@/lib/dates';
 import { BulkResolveBar, type OpenRow } from './bulk-resolve-bar';
 
 export default async function IncidentsPage({
@@ -44,15 +46,32 @@ export default async function IncidentsPage({
     take: 50,
     include: { resource: true, uptimeCheck: true, aiProbe: true },
   });
-  const openRows: OpenRow[] = open.map((i) => ({
-    id: i.id,
-    openedAt: i.openedAt.toISOString().slice(0, 19).replace('T', ' '),
-    name: i.resource?.name ?? i.uptimeCheck?.name ?? i.aiProbe?.name ?? '—',
-    href: `/incidents/${i.id}`,
-    type: i.type,
-    severity: i.severity,
-    message: i.message,
-  }));
+  const now = new Date();
+  const openRows: OpenRow[] = open.map((i) => {
+    const src = classifyIncidentSource({ type: i.type, uptimeCheckId: i.uptimeCheckId, aiProbeId: i.aiProbeId });
+    return {
+      id: i.id,
+      severity: i.severity,
+      type: i.type,
+      message: i.message,
+      href: `/incidents/${i.id}`,
+      appName: i.resource?.name ?? i.uptimeCheck?.name ?? i.aiProbe?.name ?? '—',
+      sourceKind: src.kind,
+      sourceLabel: src.label,
+      eventCount: i.eventCount,
+      lastEventRel: relativeDeployHint(i.lastEventAt, now) ?? '—',
+    };
+  });
+
+  const critCount = open.filter((i) => i.severity === 'crit').length;
+  const warnCount = open.length - critCount;
+  const eventTotal = open.reduce((s, i) => s + i.eventCount, 0);
+  const stats = [
+    { label: 'Abertos', value: open.length, tone: 'text-zinc-900 dark:text-zinc-100' },
+    { label: 'Críticos', value: critCount, tone: 'text-rose-600 dark:text-rose-400' },
+    { label: 'Avisos', value: warnCount, tone: 'text-amber-600 dark:text-amber-400' },
+    { label: 'Eventos', value: eventTotal, tone: 'text-zinc-900 dark:text-zinc-100' },
+  ];
 
   if (open.length === 0 && recent.length === 0) {
     return (
@@ -81,6 +100,17 @@ export default async function IncidentsPage({
         />
         <SavedFilters page="incidents" filters={filterEntries} />
       </div>
+
+      {open.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {stats.map((s) => (
+            <div key={s.label} className="rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-800/40">
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">{s.label}</div>
+              <div className={`text-2xl font-semibold ${s.tone}`}>{s.value}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Open incidents */}
       <section className="space-y-3">

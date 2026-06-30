@@ -4,6 +4,7 @@ import { extractAnswer, validateRule, judgeWithLlm, evaluateProbeTransition } fr
 import { log } from '@/lib/logger';
 import { listNotifiers } from '@/notify/registry';
 import { buildAiProbeContext } from '@/notify/context';
+import { bumpIncident } from './incident-bump';
 
 const PROBE_TIMEOUT_MS = 30_000; // AI endpoints are slow; well above the uptime probe's 10s.
 
@@ -151,6 +152,7 @@ export async function runAiProbes(now: Date = new Date()): Promise<void> {
           where: { aiProbeId: p.id, type: 'ai_probe_failed', resolvedAt: null },
         });
         if (!existing) shouldOpen = true;
+        else await bumpIncident(existing.id, now);
       }
 
       if (shouldOpen) {
