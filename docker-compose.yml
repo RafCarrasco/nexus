@@ -53,6 +53,11 @@ services:
       - "traefik.http.routers.nexus.entrypoints=websecure"
       - "traefik.http.routers.nexus.tls.certresolver=letsencrypt"
       - "traefik.http.services.nexus.loadbalancer.server.port=3000"
+      # Per-source-IP rate limit — caps webhook/ingest floods (and any abusive client)
+      # without hurting normal dashboard use by a handful of PG users.
+      - "traefik.http.middlewares.nexus-rl.ratelimit.average=100"
+      - "traefik.http.middlewares.nexus-rl.ratelimit.burst=50"
+      - "traefik.http.routers.nexus.middlewares=nexus-rl"
 
 networks:
   nexus-internal:

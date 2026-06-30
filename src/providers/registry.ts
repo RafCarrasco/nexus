@@ -8,6 +8,7 @@ import { GitHubProvider } from './github';
 import { CloudflareProvider } from './cloudflare';
 import { AzureProvider } from './azure';
 import { N8nProvider } from './n8n';
+import { SentryProvider } from './sentry';
 
 const registry = new Map<string, Provider>();
 registry.set(FakeProvider.type, FakeProvider);
@@ -19,6 +20,7 @@ registry.set(GitHubProvider.type, GitHubProvider);
 registry.set(CloudflareProvider.type, CloudflareProvider);
 registry.set(AzureProvider.type, AzureProvider);
 registry.set(N8nProvider.type, N8nProvider);
+registry.set(SentryProvider.type, SentryProvider);
 
 export function registerProvider(p: Provider): void {
   registry.set(p.type, p);

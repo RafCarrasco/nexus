@@ -84,6 +84,21 @@ export const CONNECTION_GUIDES: Record<string, Guide> = {
       { key: 'apiKey', required: true, hint: 'API key do n8n (n8n_api_…).' },
     ],
   },
+  sentry: {
+    monitors: 'Erros/issues dos apps via Sentry — chegam por webhook e viram incidentes (sentry_issue) com a contagem de eventos do Sentry.',
+    steps: [
+      { text: 'Salve a conexão (pode ser com {} vazio — modo só-webhook).' },
+      { text: 'No card da conexão, gere um Token de ingest e copie o valor.' },
+      { text: 'No Sentry → Settings → Alerts (ou uma Internal Integration), crie uma regra que dispara num webhook apontando para https://nexus.srv1625247.hstgr.cloud/api/ingest/sentry?token=SEU_TOKEN', href: 'https://pg-consulting.sentry.io/settings/integrations/', linkLabel: 'abrir integrações do Sentry' },
+      { text: '(Opcional) informe authToken + org para o Nexus também LISTAR os projetos do Sentry antes do primeiro erro.' },
+    ],
+    fields: [
+      { key: 'authToken', required: false, hint: 'Auth token de org do Sentry — só para listar projetos (modo pull). Em branco = só webhook.' },
+      { key: 'org', required: false, hint: 'Slug da organização no Sentry (ex.: pg-consulting). Necessário com authToken.' },
+      { key: 'baseUrl', required: false, hint: 'Default https://sentry.io. Mude só para Sentry self-hosted.' },
+    ],
+    note: 'O token de ingest vai na URL do webhook (?token=…). É um token de baixo privilégio, revogável a qualquer momento no card da conexão.',
+  },
   docker: {
     monitors: 'Containers Docker do host onde o Nexus roda.',
     steps: [

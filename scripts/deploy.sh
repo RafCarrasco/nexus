@@ -38,7 +38,7 @@ fi
 rollback() {
   echo "!! Deploy FAILED — rolling code back to $PREVIOUS_SHA"
   git reset --hard "$PREVIOUS_SHA" || true
-  docker compose build nexus-web || true
+  docker compose build --build-arg GIT_SHA="$PREVIOUS_SHA" nexus-web || true
   docker compose up -d nexus-web || true
   echo "Rolled back. NOTE: forward DB migrations are not auto-reverted —"
   echo "keep migrations expand/contract (backward-compatible) so rollback stays safe."
@@ -51,7 +51,7 @@ echo "Updating to $NEW_SHA"
 git reset --hard "$NEW_SHA"
 
 echo "Building web image..."
-docker compose build nexus-web
+docker compose build --build-arg GIT_SHA="$NEW_SHA" nexus-web
 
 # Migrate with the freshly built image BEFORE swapping the running container,
 # so the new schema is in place when new code goes live. prisma migrate deploy

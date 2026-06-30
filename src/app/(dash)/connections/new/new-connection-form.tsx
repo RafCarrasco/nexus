@@ -53,6 +53,7 @@ const PLACEHOLDER: Record<string, string> = {
   azure:      '{\n  "tenantId": "...",\n  "clientId": "...",\n  "clientSecret": "...",\n  "subscriptionId": "optional"\n}',
   n8n:        '{\n  "baseUrl": "https://your-n8n-host",\n  "apiKey": "n8n_api_..."\n}',
   supabase:   '{\n  "token": "sbp_...",\n  "projectRefs": "ref1, ref2 (opcional — em branco = todos)",\n  "orgSlug": "your-org-slug (opcional)"\n}',
+  sentry:     '{\n  "authToken": "(opcional — só p/ listar projetos)",\n  "org": "pg-consulting (opcional)",\n  "baseUrl": "https://sentry.io (opcional)"\n}',
   docker:     '{}',
   fake:       '{\n  "resourceCount": 3\n}',
 };
@@ -240,6 +241,7 @@ export function NewConnectionForm({ workspaces = [], fixedWorkspaceId, successRe
               <option value="cloudflare">cloudflare</option>
               <option value="azure">azure</option>
               <option value="n8n">n8n</option>
+              <option value="sentry">sentry</option>
               <option value="docker">docker</option>
               <option value="fake">fake (dev only)</option>
             </select>

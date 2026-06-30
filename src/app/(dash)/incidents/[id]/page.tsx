@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/db/client';
 import { Badge } from '@/ui/components/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
+import { classifyIncidentSource } from '@/lib/incident-source';
+import { relativeDeployHint } from '@/lib/dates';
 import { ResolveToggle } from './resolve-toggle';
 
 export const runtime = 'nodejs';
@@ -82,6 +84,20 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
 
   const entityName = originName;
 
+  const source = classifyIncidentSource({
+    type: incident.type,
+    uptimeCheckId: incident.uptimeCheckId,
+    aiProbeId: incident.aiProbeId,
+  });
+  const lastEventRel = relativeDeployHint(incident.lastEventAt) ?? '—';
+
+  // Sentry incidents carry a permalink in the payload — surface it as an external link.
+  const payloadObj =
+    incident.payload && typeof incident.payload === 'object' && !Array.isArray(incident.payload)
+      ? (incident.payload as Record<string, unknown>)
+      : null;
+  const sentryLink = typeof payloadObj?.permalink === 'string' ? payloadObj.permalink : null;
+
   // Duration: open span when resolved, age when still open.
   const durationText = durationLabel(incident.openedAt, incident.resolvedAt);
 
@@ -139,6 +155,13 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
             <DetailRow label="Tipo">
               <span className="text-zinc-600 dark:text-zinc-300">{incident.type}</span>
             </DetailRow>
+            <DetailRow label="Fonte">
+              <span className="text-zinc-600 dark:text-zinc-300">{source.label}</span>
+            </DetailRow>
+            <DetailRow label="Eventos">
+              <span className="font-medium text-zinc-900 dark:text-zinc-100">{incident.eventCount}</span>
+              <span className="ml-2 text-zinc-500 dark:text-zinc-400">· último {lastEventRel}</span>
+            </DetailRow>
             <DetailRow label="Severidade">
               <span
                 className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${severityClasses(
@@ -181,6 +204,18 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
                 <span className="text-zinc-400 dark:text-zinc-500">—</span>
               )}
             </DetailRow>
+            {sentryLink && (
+              <DetailRow label="Sentry">
+                <a
+                  href={sentryLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-violet-600 underline transition-colors hover:text-violet-700 dark:text-violet-400"
+                >
+                  Ver issue no Sentry ↗
+                </a>
+              </DetailRow>
+            )}
             {hasPayload && (
               <DetailRow label="Payload">
                 <pre className="max-h-96 overflow-auto rounded-lg border border-zinc-200 bg-zinc-50 p-3 font-mono text-xs text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">

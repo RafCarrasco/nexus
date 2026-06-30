@@ -17,6 +17,10 @@ const COLLECTOR_STALE_SEC = 900;
 type CollectorInfo = { lastRunAt: string | null; ageSec: number | null; stale: boolean };
 let cached: { at: number; ok: boolean; collector: CollectorInfo } | null = null;
 
+// Baked into the image at build time (Dockerfile ARG GIT_SHA ← deploy.sh). Lets ops confirm
+// exactly which commit is live — e.g. after an incident, "was the fix deployed?".
+const VERSION = (process.env.NEXUS_GIT_SHA ?? 'unknown').slice(0, 12);
+
 /**
  * Liveness + DB readiness probe. 200 = healthy, 503 = DB down. The response body
  * is intentionally minimal — no error detail — since it is unauthenticated and
@@ -52,7 +56,7 @@ export async function GET() {
 
 function respond(ok: boolean, collector: CollectorInfo) {
   return NextResponse.json(
-    { status: ok ? 'ok' : 'degraded', db: ok ? 'up' : 'down', collector, ts: new Date().toISOString() },
+    { status: ok ? 'ok' : 'degraded', db: ok ? 'up' : 'down', version: VERSION, collector, ts: new Date().toISOString() },
     { status: ok ? 200 : 503 },
   );
 }

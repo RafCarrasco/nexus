@@ -16,6 +16,10 @@ RUN npm run build
 
 FROM node:22-alpine AS runner
 WORKDIR /app
+# Baked at build time by deploy.sh (--build-arg GIT_SHA=…) so /api/health can report the
+# exact deployed commit for post-incident "which version was running?" queries.
+ARG GIT_SHA=unknown
+ENV NEXUS_GIT_SHA=$GIT_SHA
 ENV NODE_ENV=production
 ENV PORT=3000
 RUN apk add --no-cache openssl libc6-compat \

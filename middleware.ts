@@ -8,6 +8,10 @@ export default auth((req) => {
   const isPublic =
     url.pathname.startsWith('/login') ||
     url.pathname.startsWith('/api/auth') ||
+    // Ingest endpoints authenticate by their own bearer/URL token in the handler — the
+    // session middleware must let them through, else token POSTs 307 to /login and webhook
+    // senders (Sentry, n8n) just see a redirect. Covers /api/ingest and /api/ingest/sentry.
+    url.pathname.startsWith('/api/ingest') ||
     // Public per-workspace status pages (no login) for client-facing status.
     url.pathname.startsWith('/status') ||
     // Exact match, not prefix: a future /api/health-* route must not inherit public access.
